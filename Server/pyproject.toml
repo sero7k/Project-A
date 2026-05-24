@@ -1,0 +1,18 @@
+[project]
+name = "project-a-server"
+version = "0.1.0"
+description = "Local Project A service emulator with PostgreSQL-backed accounts."
+requires-python = ">=3.12"
+dependencies = [
+    "cryptography>=42",
+    "psycopg[binary]>=3.2",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".."]
