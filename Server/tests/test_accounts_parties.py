@@ -7,6 +7,7 @@ import ssl
 import sys
 import threading
 from pathlib import Path
+from urllib.parse import quote
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -104,14 +105,18 @@ def start_http_server() -> tuple[server.DualProtocolHTTPServer, threading.Thread
     return httpd, thread
 
 
-def request_json(port: int, path: str, token: str) -> dict:
+def request_json(port: int, path: str, token: str, method: str = "GET", body: dict | None = None, expected_status: int = 200) -> dict:
     conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
-    conn.request("GET", path, headers={"Authorization": basic_auth(token)})
+    raw_body = json.dumps(body).encode("utf-8") if body is not None else None
+    headers = {"Authorization": basic_auth(token)}
+    if raw_body is not None:
+        headers["Content-Type"] = "application/json"
+    conn.request(method, path, body=raw_body, headers=headers)
     response = conn.getresponse()
-    body = response.read()
+    response_body = response.read()
     conn.close()
-    assert response.status == 200, body
-    return json.loads(body.decode("utf-8"))
+    assert response.status == expected_status, response_body
+    return json.loads(response_body.decode("utf-8"))
 
 
 def test_http_two_clients_are_not_forced_into_one_party() -> None:
@@ -128,6 +133,95 @@ def test_http_two_clients_are_not_forced_into_one_party() -> None:
 
         assert [member["Subject"] for member in first_party["Members"]] == [first_player["Subject"]]
         assert [member["Subject"] for member in second_party["Members"]] == [second_player["Subject"]]
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=5)
+
+
+def test_http_alias_update_persists_to_friends_and_name_service() -> None:
+    reset_memory_store()
+    httpd, thread = start_http_server()
+    try:
+        port = int(httpd.server_address[1])
+        updated = request_json(
+            port,
+            "/player-account/aliases/v1/active",
+            "developer2",
+            method="POST",
+            body={"game_name": "Sero", "tag_line": "7K"},
+        )
+        assert updated["GameName"] == "Sero"
+        assert updated["TagLine"] == "7K"
+
+        request_json(port, "/riot-messaging-service/v1/session", "developer")
+        friends = request_json(port, "/friends/v1/friends", "developer")["Friends"]
+        friend = next(item for item in friends if item["Subject"] == updated["Subject"])
+        assert friend["GameName"] == "Sero"
+        assert friend["TagLine"] == "7K"
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=5)
+
+
+def test_http_friends_excludes_self_and_marks_online_players_online() -> None:
+    reset_memory_store()
+    httpd, thread = start_http_server()
+    try:
+        port = int(httpd.server_address[1])
+        first = request_json(port, "/parties/v1/players/current", "developer")
+        second = request_json(port, "/parties/v1/players/current", "developer2")
+        friends = request_json(port, "/friends/v1/friends", "developer")["Friends"]
+
+        assert all(friend["Subject"] != first["Subject"] for friend in friends)
+        second_friend = next(friend for friend in friends if friend["Subject"] == second["Subject"])
+        assert second_friend["Presence"]["online"] is True
+        assert second_friend["Presence"]["availability"] == "online"
+        assert second_friend["Presence"]["state"] == "chat"
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=5)
+
+
+def test_http_invite_accept_join_and_party_chat() -> None:
+    reset_memory_store()
+    httpd, thread = start_http_server()
+    try:
+        port = int(httpd.server_address[1])
+        first_player = request_json(port, "/parties/v1/players/current", "developer")
+        second_player = request_json(port, "/parties/v1/players/current", "developer2")
+        assert first_player["CurrentPartyID"] != second_player["CurrentPartyID"]
+
+        invite = request_json(
+            port,
+            f"/parties/v1/parties/{first_player['CurrentPartyID']}/invites/name/DevPlayer2/tag/LOCAL2",
+            "developer",
+            method="POST",
+        )
+        assert invite["PartyID"] == first_player["CurrentPartyID"]
+        assert invite["Subject"] == second_player["Subject"]
+
+        invites = request_json(port, f"/parties/v1/players/{second_player['Subject']}/invites", "developer2")["Invites"]
+        assert [item["ID"] for item in invites] == [invite["ID"]]
+
+        joined = request_json(
+            port,
+            f"/parties/v1/parties/{first_player['CurrentPartyID']}/invites/{invite['ID']}/accept",
+            "developer2",
+            method="POST",
+        )
+        assert {member["Subject"] for member in joined["Members"]} == {first_player["Subject"], second_player["Subject"]}
+
+        room = quote(joined["MUCName"], safe="")
+        request_json(port, "/chat/v5/conversations", "developer", method="POST", body={"cid": joined["MUCName"]})
+        request_json(port, "/chat/v5/conversations", "developer2", method="POST", body={"cid": joined["MUCName"]})
+        sent = request_json(port, "/chat/v5/messages", "developer", method="POST", body={"cid": joined["MUCName"], "message": "hello party"})
+        messages = request_json(port, f"/chat/v5/messages?cid={room}", "developer2")["Messages"]
+
+        assert sent["Body"] == "hello party"
+        assert any(message["Body"] == "hello party" and message["Subject"] == first_player["Subject"] for message in messages)
     finally:
         httpd.shutdown()
         httpd.server_close()

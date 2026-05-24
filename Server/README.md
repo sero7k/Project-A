@@ -36,10 +36,14 @@ Accounts are created on first use from the remoting auth token. The account tabl
 
 Each account receives a distinct default party. Observing a second account no longer adds it to the current player’s lobby. A second player appears in the same party only after an explicit party join route is handled.
 
+`/player-account/aliases/v1/active` and `/player-account/aliases/v1/aliases` accept `POST`, `PUT`, or `PATCH` bodies with `game_name`/`tag_line` fields to update a local Riot name and tag. Friends and presence responses use the updated display name.
+
+Party invite routes can invite by Riot name/tag, expose pending invites to the target account, and join the target account to the inviter's party when the invite is accepted. Party text chat is stored per server run and can be posted/read through `/chat/v5/messages`.
+
 ## Tests
 
 ```powershell
 python -m pytest
 ```
 
-The test suite covers account creation, distinct default parties, party chat participant isolation, explicit party joining, and an HTTP smoke test against a running local server instance.
+The test suite covers account creation, alias updates, online friends presence, self-filtered friends lists, distinct default parties, party chat participant isolation, explicit party joining, invite acceptance, text chat, and an HTTP smoke test against a running local server instance.

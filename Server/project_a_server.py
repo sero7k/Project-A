@@ -23,12 +23,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
+from urllib.parse import unquote
 
 try:
     from .accounts import (
         DEFAULT_DATABASE_URL,
         AccountRecord,
         MemoryAccountStore,
+        PartyInviteRecord,
         PostgresAccountStore,
         account_from_hint,
         normalize_account_key,
@@ -38,6 +40,7 @@ except ImportError:
         DEFAULT_DATABASE_URL,
         AccountRecord,
         MemoryAccountStore,
+        PartyInviteRecord,
         PostgresAccountStore,
         account_from_hint,
         normalize_account_key,
@@ -309,6 +312,50 @@ def profile_from_account(account: AccountRecord) -> dict[str, str]:
     return profile
 
 
+def alias_payload(profile: dict[str, str]) -> dict[str, Any]:
+    return {
+        "Subject": profile["subject"],
+        "subject": profile["subject"],
+        "game_name": profile["game_name"],
+        "tag_line": profile["tag_line"],
+        "summoner": profile["game_name"],
+        "GameName": profile["game_name"],
+        "TagLine": profile["tag_line"],
+        "GameTag": profile["tag_line"],
+        "DisplayName": profile["display_name"],
+        "displayName": profile["display_name"],
+        "active": True,
+        "created_datetime": 0,
+        "errorCode": "",
+        "errorMessage": "",
+        "isSuccess": True,
+        "isTagLineCustomizable": True,
+    }
+
+
+def alias_fields_from_body(body: Any, fallback: dict[str, str]) -> tuple[str, str]:
+    if not isinstance(body, dict):
+        return fallback["game_name"], fallback["tag_line"]
+    game_name = (
+        body.get("game_name")
+        or body.get("gameName")
+        or body.get("GameName")
+        or body.get("summoner")
+        or body.get("name")
+        or fallback["game_name"]
+    )
+    tag_line = (
+        body.get("tag_line")
+        or body.get("tagLine")
+        or body.get("TagLine")
+        or body.get("GameTag")
+        or body.get("gameTag")
+        or body.get("tag")
+        or fallback["tag_line"]
+    )
+    return str(game_name), str(tag_line)
+
+
 def profile_by_key(key: str | None) -> dict[str, str]:
     canonical = canonical_profile_key(key)
     account = ACCOUNT_STORE.get_or_create_account(canonical, LOCAL_PROFILES.get(canonical))
@@ -411,6 +458,17 @@ def social_roster_profiles(game_state: dict[str, Any] | None = None) -> list[dic
         if all(existing["subject"] != profile["subject"] for existing in profiles):
             profiles.append(profile)
     return profiles
+
+
+def online_profile_keys(game_state: dict[str, Any] | None = None) -> set[str]:
+    raw_keys = (game_state or {}).get("active_profile_keys")
+    if not isinstance(raw_keys, list):
+        return set()
+    return {canonical_profile_key(str(key)) for key in raw_keys}
+
+
+def profile_is_online(game_state: dict[str, Any] | None, profile: dict[str, str]) -> bool:
+    return profile["key"] in online_profile_keys(game_state)
 
 
 def profile_replacements(profile: dict[str, str]) -> dict[str, str]:
@@ -943,9 +1001,13 @@ def presence_payload(
 ) -> dict[str, Any]:
     profile = profile or default_profile()
     private_raw = json.dumps(presence_private_payload(game_state, profile), separators=(",", ":")).encode("utf-8")
+    online = profile_is_online(game_state, profile)
+    state_value = "chat" if online else "offline"
+    basic_value = "chat" if online else "offline"
     payload = {
         "actor": None,
-        "basic": "chat",
+        "availability": "online" if online else "offline",
+        "basic": basic_value,
         "details": None,
         "game_name": profile["game_name"],
         "game_tag": profile["tag_line"],
@@ -967,7 +1029,8 @@ def presence_payload(
         "puuid": profile["subject"],
         "region": "na",
         "resource": CHAT_RESOURCE,
-        "state": "chat",
+        "online": online,
+        "state": state_value,
         "summary": "",
         "time": int(time.time() * 1000),
     }
@@ -1195,6 +1258,7 @@ def party_player_payload(
 ) -> dict[str, Any]:
     profile = profile or default_profile()
     party_id = party_id or party_id_for_profile(profile)
+    invites = [invite_payload(invite) for invite in ACCOUNT_STORE.invites_for_account(profile["key"])]
     return {
         "Subject": profile["subject"],
         "GameName": profile["game_name"],
@@ -1205,7 +1269,7 @@ def party_player_payload(
         "prefDisplayName": profile["display_name"],
         "Version": int((game_state or {}).get("party_version", 1)),
         "CurrentPartyID": party_id,
-        "Invites": [],
+        "Invites": invites,
         "Requests": [],
         "PlatformInfo": {
             "platformType": "PC",
@@ -1341,6 +1405,77 @@ def party_payload(
         "XPBonuses": [],
         "InviteCode": "LOCAL",
     }
+
+
+def invite_payload(invite: PartyInviteRecord) -> dict[str, Any]:
+    inviter = profile_by_key(invite.inviter_account_key)
+    invitee = profile_by_key(invite.invitee_account_key)
+    return {
+        "ID": invite.invite_id,
+        "Id": invite.invite_id,
+        "id": invite.invite_id,
+        "InvitationID": invite.invite_id,
+        "invitationID": invite.invite_id,
+        "PartyID": invite.party_id,
+        "partyID": invite.party_id,
+        "PartyId": invite.party_id,
+        "partyId": invite.party_id,
+        "Inviter": inviter["subject"],
+        "inviter": inviter["subject"],
+        "InviterSubject": inviter["subject"],
+        "inviterSubject": inviter["subject"],
+        "InviterGameName": inviter["game_name"],
+        "InviterTagLine": inviter["tag_line"],
+        "InviterDisplayName": inviter["display_name"],
+        "Invitee": invitee["subject"],
+        "invitee": invitee["subject"],
+        "Subject": invitee["subject"],
+        "subject": invitee["subject"],
+        "GameName": invitee["game_name"],
+        "TagLine": invitee["tag_line"],
+        "DisplayName": invitee["display_name"],
+        "State": "PENDING",
+        "state": "PENDING",
+    }
+
+
+def invites_payload(profile: dict[str, str]) -> dict[str, Any]:
+    invites = [invite_payload(invite) for invite in ACCOUNT_STORE.invites_for_account(profile["key"])]
+    return {"Invites": invites, "invites": invites, "Requests": [], "requests": []}
+
+
+def account_key_from_invite_body(body: Any) -> str | None:
+    if not isinstance(body, dict):
+        return None
+    for field in ("Subject", "subject", "Puuid", "puuid", "Invitee", "invitee"):
+        raw = body.get(field)
+        if isinstance(raw, str):
+            account = ACCOUNT_STORE.get_account_by_subject(raw)
+            if account:
+                return account.account_key
+    game_name, tag_line = alias_fields_from_body(body, {"game_name": "", "tag_line": ""})
+    if game_name and tag_line:
+        account = ACCOUNT_STORE.find_account_by_alias(game_name, tag_line)
+        if account:
+            return account.account_key
+    for field in ("account_key", "accountKey", "AccountKey", "key"):
+        raw = body.get(field)
+        if isinstance(raw, str):
+            return canonical_profile_key(raw)
+    return None
+
+
+def account_key_from_invite_route(route_path: str) -> str | None:
+    match = re.match(r"^/parties/v1/parties/[^/]+/invites/name/([^/]+)/tag/([^/]+)", route_path)
+    if not match:
+        return None
+    account = ACCOUNT_STORE.find_account_by_alias(unquote(match.group(1)), unquote(match.group(2)))
+    return account.account_key if account else None
+
+
+def invite_id_from_route(route_path: str) -> str | None:
+    match = re.match(r"^/parties/v1/parties/[^/]+/invites/([0-9a-fA-F-]{36})", route_path)
+    return match.group(1) if match else None
 
 
 def queue_configs_payload() -> dict[str, Any]:
@@ -4144,38 +4279,20 @@ class ProbeHandler(BaseHTTPRequestHandler):
             self._write(200, {"errorCode": "", "errorMessage": "", "isSuccess": True, "isTagLineCustomizable": True})
         elif route_path == "/player-account/aliases/v1/active":
             profile = self._current_profile()
-            self._write(
-                200,
-                {
-                    "game_name": profile["game_name"],
-                    "tag_line": profile["tag_line"],
-                    "summoner": profile["game_name"],
-                    "GameName": profile["game_name"],
-                    "TagLine": profile["tag_line"],
-                    "DisplayName": profile["display_name"],
-                    "active": True,
-                    "created_datetime": 0,
-                },
-            )
+            if self.command in {"POST", "PUT", "PATCH"}:
+                game_name, tag_line = alias_fields_from_body(json_body, profile)
+                profile = profile_from_account(ACCOUNT_STORE.update_alias(profile["key"], game_name, tag_line))
+                self.profile = profile
+                self._broadcast_social_roster_update()
+            self._write(200, alias_payload(profile))
         elif route_path in {"/player-account/aliases/v1/aliases", "/player-account/aliases/v1/validity"}:
             profile = self._current_profile()
-            self._write(
-                200,
-                {
-                    "game_name": profile["game_name"],
-                    "tag_line": profile["tag_line"],
-                    "summoner": profile["game_name"],
-                    "GameName": profile["game_name"],
-                    "TagLine": profile["tag_line"],
-                    "DisplayName": profile["display_name"],
-                    "active": True,
-                    "created_datetime": 0,
-                    "errorCode": "",
-                    "errorMessage": "",
-                    "isSuccess": True,
-                    "isTagLineCustomizable": True,
-                },
-            )
+            if route_path.endswith("/aliases") and self.command in {"POST", "PUT", "PATCH"}:
+                game_name, tag_line = alias_fields_from_body(json_body, profile)
+                profile = profile_from_account(ACCOUNT_STORE.update_alias(profile["key"], game_name, tag_line))
+                self.profile = profile
+                self._broadcast_social_roster_update()
+            self._write(200, alias_payload(profile))
         elif route_path.startswith("/player-preferences/v1/data-json/"):
             self._write(200, {})
         elif route_path == "/anti-addiction/v1/products/ares/policies/shutdown/anti-addiction-state":
@@ -4227,13 +4344,58 @@ class ProbeHandler(BaseHTTPRequestHandler):
             self._bump_match()
             self._broadcast_backend_state_update()
             self._write(200, party_payload(game_state, party_id, profile), localize=False)
+        elif re.match(r"^/parties/v1/players/[^/]+/joinparty/[0-9a-fA-F-]{36}$", route_path):
+            profile = self._current_profile()
+            party_id = route_path.rsplit("/", 1)[-1]
+            ACCOUNT_STORE.join_party(profile["key"], party_id)
+            self._bump_party()
+            self._broadcast_backend_state_update()
+            self._broadcast_social_roster_update()
+            self._write(200, party_payload(game_state, party_id, profile), localize=False)
+        elif re.match(r"^/parties/v1/players/[^/]+/invites/[0-9a-fA-F-]{36}/accept$", route_path):
+            profile = self._current_profile()
+            invite_id = route_path.split("/")[-2]
+            invite = ACCOUNT_STORE.accept_party_invite(profile["key"], invite_id)
+            party_id = invite.party_id if invite else party_id_for_profile(profile)
+            self._bump_party()
+            self._broadcast_backend_state_update()
+            self._broadcast_social_roster_update()
+            self._write(200, party_payload(game_state, party_id, profile), localize=False)
         elif re.match(r"^/parties/v1/players/[^/]+/invites(/decline)?$", route_path):
-            self._write(200, {"Invites": [], "invites": [], "Requests": [], "requests": []})
+            profile = self._current_profile()
+            if route_path.endswith("/decline"):
+                invite_id = (
+                    json_body.get("ID")
+                    or json_body.get("Id")
+                    or json_body.get("id")
+                    or json_body.get("InvitationID")
+                    or json_body.get("invitationID")
+                    if isinstance(json_body, dict)
+                    else None
+                )
+                if invite_id:
+                    ACCOUNT_STORE.decline_party_invite(profile["key"], str(invite_id))
+            self._write(200, invites_payload(profile))
         elif route_path.startswith("/parties/v1/players/"):
             profile = self._current_profile()
             self._write(200, party_player_payload(game_state, profile, party_id_for_profile(profile)), localize=False)
         elif route_path.startswith("/parties/v1/parties/") and route_path.endswith("/customgameconfigs"):
             self._write(200, custom_game_configs_payload(game_state))
+        elif re.match(r"^/parties/v1/parties/[^/]+/invites/[0-9a-fA-F-]{36}/accept$", route_path):
+            profile = self._current_profile()
+            invite_id = invite_id_from_route(route_path)
+            invite = ACCOUNT_STORE.accept_party_invite(profile["key"], str(invite_id)) if invite_id else None
+            party_id = invite.party_id if invite else party_id_from_route(route_path) or party_id_for_profile(profile)
+            self._bump_party()
+            self._broadcast_backend_state_update()
+            self._broadcast_social_roster_update()
+            self._write(200, party_payload(game_state, party_id, profile), localize=False)
+        elif re.match(r"^/parties/v1/parties/[^/]+/invites/[0-9a-fA-F-]{36}/(decline|reject)$", route_path):
+            profile = self._current_profile()
+            invite_id = invite_id_from_route(route_path)
+            if invite_id:
+                ACCOUNT_STORE.decline_party_invite(profile["key"], invite_id)
+            self._write(200, invites_payload(profile), localize=False)
         elif re.match(r"^/parties/v1/parties/[^/]+/(join|request)$", route_path):
             profile = self._current_profile()
             party_id = party_id_from_route(route_path) or party_id_for_profile(profile)
@@ -4247,8 +4409,18 @@ class ProbeHandler(BaseHTTPRequestHandler):
             self._bump_party()
             self._broadcast_backend_state_update()
             self._write(200, party_payload(game_state, party_id, profile), localize=False)
+        elif re.match(r"^/parties/v1/parties/[^/]+/invites/name/[^/]+/tag/[^/]+$", route_path) or re.match(r"^/parties/v1/parties/[^/]+/invites$", route_path):
+            profile = self._current_profile()
+            party_id = party_id_from_route(route_path) or party_id_for_profile(profile)
+            invitee_key = account_key_from_invite_route(route_path) or account_key_from_invite_body(json_body)
+            if invitee_key:
+                invite = ACCOUNT_STORE.create_party_invite(profile["key"], invitee_key, party_id)
+                self._broadcast_social_roster_update()
+                self._write(200, invite_payload(invite), localize=False)
+            else:
+                self._write(404, {"errorCode": "PLAYER_NOT_FOUND", "errorMessage": "Invite target was not found."})
         elif re.match(r"^/parties/v1/parties/[^/]+/invites(/decline)?$", route_path):
-            self._write(200, {"Invites": [], "invites": [], "Requests": [], "requests": []})
+            self._write(200, invites_payload(self._current_profile()), localize=False)
         elif re.match(r"^/parties/v1/parties/[^/]+/customgamemembership/[^/]+$", route_path):
             profile = self._current_profile()
             party_id = party_id_from_route(route_path) or party_id_for_profile(profile)
