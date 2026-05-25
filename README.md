@@ -44,7 +44,8 @@ After that, the project files should sit alongside the main game files in the ro
 2. Install PostgreSQL.
 3. Create or configure a PostgreSQL user with the password `projecta`.
 4. Extract this project into the root of your game folder.
-5. Run `launch.bat` from the game root.
+5. Run `install_requirements.bat` from the game root.
+6. Run `launch.bat` from the game root.
 
 If your PostgreSQL setup uses the default local configuration for this project, the typical login values are:
 
@@ -98,3 +99,4 @@ If you want to help:
 This project is intended for **research, educational, and preservation purposes only**.
 
 All rights to *Valorant* and related assets belong to Riot Games.
+
