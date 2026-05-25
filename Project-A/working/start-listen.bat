@@ -10,10 +10,10 @@ if errorlevel 1 (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start_project_a.ps1" -ListenServer %*
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start_project_a.ps1" -ListenServer -GameSocketReply none %*
 set EXITCODE=%ERRORLEVEL%
 
 echo.
-echo start.bat exited with code %EXITCODE%.
+echo start-listen.bat exited with code %EXITCODE%.
 pause
 exit /b %EXITCODE%

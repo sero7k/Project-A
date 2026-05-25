@@ -17,7 +17,16 @@ param(
   [string[]]$ClientArg = @(),
   [string]$ExecCmds = "",
   [string]$ExtraLogCmds = "",
-  [bool]$AutoAcceptFriends = $true
+  [bool]$AutoAcceptFriends = $true,
+  [switch]$ListenServer,
+  # Multiplayer: start as listen-server host (binds port $GamePort)
+  [switch]$MultiplayerHost,
+  # Multiplayer: connect to an existing listen server at HOST:PORT
+  [string]$ConnectServer = "",
+  [int]$NumPlayers = 2,
+  [string]$Map = "",
+  [string]$Mode = "",
+  [string]$Profile = "developer"
 )
 
 $ErrorActionPreference = "Stop"
@@ -106,7 +115,7 @@ try {
   Remove-Item -LiteralPath (Join-Path $Out "rnet_probe.key") -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath (Join-Path $Out "rnet_probe_ca.crt") -ErrorAction SilentlyContinue
 
-  if ($GameSocketObserver) {
+  if ($GameSocketObserver -and -not $ListenServer -and -not $MultiplayerHost) {
     $ObserverSeconds = if ($Seconds -gt 0) { $Seconds + 15 } else { 86400 }
     $ObserverArgs = @(
       "reverse_tools\game_socket_observer.py",
@@ -127,6 +136,9 @@ try {
       throw "game socket observer exited early with code $($Observer.ExitCode); see $GameSocketErr"
     }
   }
+  if ($ListenServer -or $MultiplayerHost) {
+    Write-Host "LISTEN_SERVER=1 -- skipping game socket observer to free UDP port $GamePort for UE listen socket"
+  }
 
   $ServerArgs = @(
     "ProjectA-server\Server\project_a_server.py",
@@ -139,6 +151,18 @@ try {
     "--game-port", [string]$GamePort,
     "--allow-memory-db"
   )
+  if ($MultiplayerHost) {
+    $ServerArgs += "--multiplayer-host"
+    $ServerArgs += @("--num-players", [string]$NumPlayers)
+    if ($Map)     { $ServerArgs += @("--map", $Map) }
+    if ($Mode)    { $ServerArgs += @("--mode", $Mode) }
+    if ($Profile) { $ServerArgs += @("--profile", $Profile) }
+  } elseif ($ConnectServer) {
+    $ServerArgs += @("--connect-server", $ConnectServer)
+    if ($Map)     { $ServerArgs += @("--map", $Map) }
+    if ($Mode)    { $ServerArgs += @("--mode", $Mode) }
+    if ($Profile) { $ServerArgs += @("--profile", $Profile) }
+  }
   $Server = Start-ExactProcess "python" $ServerArgs $Root @{} $ServerOut $ServerErr
   Start-Sleep -Seconds 2
   if ($Server.HasExited) {
@@ -190,9 +214,11 @@ try {
   }
 
   $ClientArgs = @(
-    "-minimum-platform-init",
-    "-Port=$GamePort"
+    "-minimum-platform-init"
   )
+  if (-not $ListenServer -and -not $MultiplayerHost) {
+    $ClientArgs += "-Port=$GamePort"
+  }
   foreach ($Arg in $DisplayArgs) {
     $ClientArgs += $Arg
   }
@@ -216,6 +242,15 @@ try {
   Write-Host "PROJECT_A_SERVER_PORT=$Port"
   Write-Host "PROJECT_A_GAME_PORT=$GamePort"
   Write-Host "PROJECT_A_SERVER_PHASE=$ServerPhase"
+  if ($ListenServer -or $MultiplayerHost) {
+    Write-Host "PROJECT_A_LISTEN_SERVER=1"
+  }
+  if ($MultiplayerHost) {
+    Write-Host "PROJECT_A_MULTIPLAYER_HOST=1 PLAYERS=$NumPlayers PORT=$GamePort"
+  }
+  if ($ConnectServer) {
+    Write-Host "PROJECT_A_CONNECT_SERVER=$ConnectServer"
+  }
   if ($ExclusiveFullscreen) {
     Write-Host "PROJECT_A_DISPLAY_MODE=exclusive-fullscreen"
   } elseif ($BorderlessFullscreen) {
