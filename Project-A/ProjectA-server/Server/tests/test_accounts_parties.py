@@ -80,6 +80,71 @@ def test_explicit_join_is_required_to_share_party() -> None:
     assert subjects == {first["subject"], second["subject"]}
 
 
+def test_inactive_match_payload_does_not_advertise_current_match() -> None:
+    payload = server.inactive_match_payload()
+
+    assert payload["ID"] == ""
+    assert payload["MatchID"] == ""
+
+
+def test_api_solo_core_payload_uses_local_temp_map() -> None:
+    game_state = server.initial_game_state("127.0.0.1", 7777, "menus")
+    profile = server.profile_by_key("developer")
+
+    server.start_solo_range_pregame(game_state, profile)
+    server.promote_solo_range_to_api_core(game_state, profile)
+    payload = server.core_game_match_payload(game_state, profile)
+
+    assert payload["MatchID"] == server.MATCH_ID
+    assert payload["ConnectionDetails"]["GameServerHost"] == server.LOCAL_RANGE_GAME_HOST
+    assert payload["ConnectionDetails"]["GameServerPort"] == server.LOCAL_RANGE_GAME_PORT
+    assert payload["ConnectionDetails"]["TempMap"] == server.LOCAL_RANGE_TRAVEL_URL
+    assert payload["ConnectionDetails"]["TempTeam"] == "Blue"
+    assert payload["Players"][0]["Subject"] == profile["subject"]
+    assert payload["Players"][0]["TeamID"] == "Blue"
+    assert set(payload["Players"][0]["PlayerIdentity"]) == {"Subject", "PlayerCardID", "PlayerTitleID"}
+
+
+def test_multiplayer_host_stays_in_menus_for_manual_listen_travel() -> None:
+    game_state = server.initial_multiplayer_host_state(num_players=2)
+
+    assert game_state["manual_listen_host"] is True
+    assert server.loop_state(game_state) == "MENUS"
+    assert server.active_match_id(game_state) == ""
+    assert server.active_party_state(game_state) == "DEFAULT"
+
+
+def test_multiplayer_client_payload_connects_to_host_port() -> None:
+    game_state = server.initial_multiplayer_client_state("127.0.0.1", 7777)
+    profile = server.profile_by_key("developer")
+
+    payload = server.core_game_match_payload(game_state, profile)
+
+    assert payload["ConnectionDetails"]["GameServerHost"] == "127.0.0.1"
+    assert payload["ConnectionDetails"]["GameServerPort"] == 7777
+    assert payload["ConnectionDetails"]["TempMap"] == server.DEFAULT_MAP
+
+
+def test_core_game_player_payload_matches_sdk_shape() -> None:
+    game_state = server.initial_game_state("127.0.0.1", 7777, "menus")
+    profile = server.profile_by_key("developer")
+
+    payload = server.core_game_player_payload(game_state, profile)
+
+    assert set(payload) == {"Subject", "MatchID", "Version"}
+
+
+def test_solo_range_pregame_has_valid_positive_timer() -> None:
+    game_state = server.initial_game_state("127.0.0.1", 7777, "menus")
+    profile = server.profile_by_key("developer")
+
+    server.start_solo_range_pregame(game_state, profile)
+    payload = server.pregame_match_payload(game_state, profile)
+
+    assert payload["PregameState"] == "character_select_active"
+    assert 0 < payload["PhaseTimeRemainingNS"] <= server.PREGAME_CHARACTER_SELECT_SECONDS * 1_000_000_000
+
+
 def basic_auth(token: str) -> str:
     raw = base64.b64encode(f"riot:{token}".encode("utf-8")).decode("ascii")
     return f"Basic {raw}"
