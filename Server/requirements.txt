@@ -1,0 +1,2 @@
+cryptography>=42,<45
+psycopg[binary,pool]>=3.1,<4

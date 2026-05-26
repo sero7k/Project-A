@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: projecta
+      POSTGRES_USER: projecta
+      POSTGRES_PASSWORD: projecta
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U projecta -d projecta"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - projecta_pgdata:/var/lib/postgresql/data
+
+  server:
+    build: .
+    environment:
+      PROJECTA_DATABASE_URL: postgresql://projecta:projecta@postgres:5432/projecta
+    ports:
+      - "39001:39001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["python", "Server/project_a_server.py", "--host", "0.0.0.0", "--port", "39001"]
+
+volumes:
+  projecta_pgdata:
