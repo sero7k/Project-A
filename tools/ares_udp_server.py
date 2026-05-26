@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 """Minimal local Ares/UE4 UDP endpoint for Project A.
 
-This is not a full game server yet. It implements the UE4.22 stateless
-connect handshake used before the control channel starts, then logs every
-packet so the next protocol layer can be reconstructed from real traffic.
+Implements the UE4.22 stateless connect handshake then logs every packet so
+the next protocol layer can be reconstructed from real traffic.
 """
 
 from __future__ import annotations
 
 import argparse
-import binascii
 import json
 import os
 import secrets
@@ -18,15 +16,24 @@ import struct
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "Server"))
+
+from projecta.gameplay.ares import (
+    analyze_ares_frame,
+    append_packet_handler_marker,
+    make_ares_frame,
+    make_ares_frame_packet,
+    make_ue_stateless_component_payload,
+    ue_stateless_component_bit_count,
+    BitWriter,
+)
 
 
+COOKIE_BYTES = 20
 HANDSHAKE_PACKET_BITS = 195
 RESTART_RESPONSE_BITS = 355
-COOKIE_BYTES = 20
-
-
-def ue_mem_crc32(data: bytes, seed: int = 0) -> int:
-    return binascii.crc32(data, seed ^ 0xFFFFFFFF) ^ 0xFFFFFFFF
 
 
 class BitStream:
@@ -60,31 +67,6 @@ class BitStream:
         return struct.unpack("<f", self.read_bytes(4))[0]
 
 
-class BitWriter:
-    def __init__(self) -> None:
-        self.data = bytearray()
-        self.bitpos = 0
-
-    def write_bit(self, value: int) -> None:
-        if self.bitpos == len(self.data) * 8:
-            self.data.append(0)
-        if value & 1:
-            self.data[self.bitpos >> 3] |= 1 << (self.bitpos & 7)
-        self.bitpos += 1
-
-    def write_bytes(self, data: bytes) -> None:
-        for byte in data:
-            for bit in range(8):
-                self.write_bit((byte >> bit) & 1)
-
-    def write_float(self, value: float) -> None:
-        self.write_bytes(struct.pack("<f", value))
-
-    def finish_with_termination(self) -> bytes:
-        self.write_bit(1)
-        return bytes(self.data)
-
-
 @dataclass
 class ClientState:
     challenge_cookie: bytes = field(default_factory=lambda: b"\x00" * COOKIE_BYTES)
@@ -115,24 +97,25 @@ class AresUdpServer:
             self.log_file.write(line + "\n")
             self.log_file.flush()
 
-    def build_handshake_packet(self, timestamp: float, cookie: bytes, secret_id: int = 0) -> bytes:
-        writer = BitWriter()
-        writer.write_bit(1)          # HandshakeBit
-        writer.write_bit(0)          # RestartHandshakeBit
-        writer.write_bit(secret_id)  # SecretIdBit
-        writer.write_float(timestamp)
-        writer.write_bytes(cookie[:COOKIE_BYTES].ljust(COOKIE_BYTES, b"\x00"))
-        return writer.finish_with_termination()
+    def build_challenge_packet(self, timestamp: float, cookie: bytes) -> bytes:
+        payload = make_ue_stateless_component_payload(
+            handshake_packet=True,
+            restart_handshake=False,
+            secret_id=False,
+            timestamp=timestamp,
+            cookie=cookie,
+        )
+        return make_ares_frame_packet(payload, ue_stateless_component_bit_count(), crc_includes_marker=False)
 
-    def build_restart_request(self) -> bytes:
-        writer = BitWriter()
-        writer.write_bit(1)
-        writer.write_bit(1)
-        return writer.finish_with_termination()
-
-    def build_ares_envelope(self, payload: bytes) -> bytes:
-        crc = ue_mem_crc32(payload) & 0xFFFFFFFF
-        return struct.pack("<IH", crc, len(payload)) + payload
+    def build_ack_packet(self, cookie: bytes) -> bytes:
+        payload = make_ue_stateless_component_payload(
+            handshake_packet=True,
+            restart_handshake=False,
+            secret_id=True,
+            timestamp=-1.0,
+            cookie=cookie,
+        )
+        return make_ares_frame_packet(payload, ue_stateless_component_bit_count(), crc_includes_marker=False)
 
     def parse_handshake(self, payload: bytes) -> dict[str, object] | None:
         bits = BitStream(payload)
@@ -143,10 +126,6 @@ class AresUdpServer:
             remaining = bits.bits_left()
             expected = HANDSHAKE_PACKET_BITS - 1
             restart_expected = RESTART_RESPONSE_BITS - 1
-            # UDP gives whole bytes, while UE's PacketHandler tracks exact bit counts.
-            # The 196-bit handshake appears on the wire as 25 bytes, leaving 199 bits
-            # after the first handshake bit. Accept the byte-rounded forms and ignore
-            # the trailing zero padding after the termination bit.
             rounded_expected = ((HANDSHAKE_PACKET_BITS + 7) // 8) * 8 - 1
             rounded_restart_expected = ((RESTART_RESPONSE_BITS + 7) // 8) * 8 - 1
             if remaining not in {expected, restart_expected, rounded_expected, rounded_restart_expected}:
@@ -172,21 +151,25 @@ class AresUdpServer:
         except ValueError as exc:
             return {"handshake": True, "valid": False, "error": str(exc)}
 
-    def handle_packet(self, sock: socket.socket, payload: bytes, addr: tuple[str, int]) -> None:
+    def handle_packet(self, sock: socket.socket, data: bytes, addr: tuple[str, int]) -> None:
         state = self.clients.setdefault(addr, ClientState())
         state.last_seen = time.time()
         state.packets_in += 1
+
+        ares_frame = analyze_ares_frame(data)
+        payload = data[6 : 6 + ares_frame["declared_length"]] if ares_frame and ares_frame.get("checksum_ok") else data
         parsed = self.parse_handshake(payload)
 
         self.log_event(
             "recv",
             addr=f"{addr[0]}:{addr[1]}",
-            length=len(payload),
-            hex=payload.hex(),
-            parsed=self._json_safe_parsed(parsed),
+            length=len(data),
+            hex=data.hex(),
+            ares_frame_ok=bool(ares_frame and ares_frame.get("checksum_ok")),
+            parsed=_json_safe(parsed),
         )
 
-        reply = None
+        reply: bytes | None = None
         mode = "none"
 
         if parsed and parsed.get("handshake") is True and parsed.get("valid") is True:
@@ -198,46 +181,23 @@ class AresUdpServer:
             if timestamp == 0.0:
                 state.challenge_timestamp = self.server_time()
                 state.challenge_cookie = secrets.token_bytes(COOKIE_BYTES)
-                reply = self.build_handshake_packet(state.challenge_timestamp, state.challenge_cookie)
+                reply = self.build_challenge_packet(state.challenge_timestamp, state.challenge_cookie)
                 mode = "challenge"
             else:
-                # UE clients accept the ack cookie and derive initial packet sequence from it.
-                # Echoing the client's cookie is enough to move the PacketHandler to initialized.
                 state.connected = True
                 state.challenge_cookie = cookie
-                reply = self.build_handshake_packet(-1.0, cookie)
+                reply = self.build_ack_packet(cookie)
                 mode = "ack"
         elif parsed and parsed.get("handshake") is False:
             state.challenge_timestamp = self.server_time()
             state.challenge_cookie = secrets.token_bytes(COOKIE_BYTES)
-            reply = self.build_handshake_packet(state.challenge_timestamp, state.challenge_cookie)
+            reply = self.build_challenge_packet(state.challenge_timestamp, state.challenge_cookie)
             mode = "challenge-from-normal"
 
         if reply:
-            if mode.startswith("challenge") or mode == "ack":
-                inner = reply
-                reply = self.build_ares_envelope(inner)
-                mode = f"ares-envelope-{mode}"
             sock.sendto(reply, addr)
             state.packets_out += 1
-            self.log_event(
-                "send",
-                addr=f"{addr[0]}:{addr[1]}",
-                mode=mode,
-                length=len(reply),
-                hex=reply.hex(),
-            )
-
-    def _json_safe_parsed(self, parsed: dict[str, object] | None) -> dict[str, object] | None:
-        if parsed is None:
-            return None
-        out: dict[str, object] = {}
-        for key, value in parsed.items():
-            if isinstance(value, bytes):
-                out[key] = value.hex()
-            else:
-                out[key] = value
-        return out
+            self.log_event("send", addr=f"{addr[0]}:{addr[1]}", mode=mode, length=len(reply), hex=reply.hex())
 
     def run(self) -> None:
         if self.log_path:
@@ -251,22 +211,29 @@ class AresUdpServer:
 
         try:
             while True:
-                payload, addr = sock.recvfrom(65535)
-                self.handle_packet(sock, payload, addr)
+                data, addr = sock.recvfrom(65535)
+                self.handle_packet(sock, data, addr)
         finally:
             sock.close()
             if self.log_file:
                 self.log_file.close()
 
 
+def _json_safe(obj: object) -> object:
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    if isinstance(obj, bytes):
+        return obj.hex()
+    return obj
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Minimal UE4/Ares UDP server")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=7777)
-    parser.add_argument(
-        "--log",
-        default=r"C:\Users\Home\Desktop\project A\reverse-logs\ares_udp_server.jsonl",
-    )
+    parser.add_argument("--log", default="reverse-logs/ares_udp_server.jsonl")
     return parser.parse_args()
 
 
