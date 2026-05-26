@@ -1,6 +1,6 @@
 # Project-A - Private Servers
 
-Project-A is a local server reconstruction for the early Project A / Valorant client. It provides a Python implementation of the client-facing HTTP/RNet control plane, a lightweight game-port observer/responder, launch scripts for local testing, and tests for the recovered API surface.
+Project-A is a local server reconstruction for the early Project A / Valorant client. It provides a Python implementation of the client-facing HTTP/RNet control plane, a lightweight game-port observer/responder, launcher scripts for local testing, optional toolkit-assisted client startup, and tests for the recovered API surface.
 
 The goal is research, preservation, and protocol documentation for the original Project A experience. The repository contains source code and tooling only. Game binaries, dumps, IDA databases, generated SDKs, runtime logs, certificates, and other local artifacts are intentionally ignored and should not be committed.
 
@@ -21,6 +21,8 @@ Known limitations:
 - Python 3.12 or newer.
 - A local Project A client folder named `Project A Valorant` beside this repository when using `start_client.bat`.
 - PostgreSQL is optional for durable account/state storage.
+
+The repository keeps a tracked placeholder file at `Project A Valorant\PUT GAME HERE` so the expected folder layout is visible after clone. Replace that placeholder locally with your extracted client files, but do not commit the real game assets.
 
 Recommended PostgreSQL defaults:
 
@@ -43,7 +45,7 @@ project A/
   tools/
   start_server.bat
   start_client.bat
-  Project A Valorant/        local client folder, ignored by git
+  Project A Valorant/        tracked placeholder folder; real client files stay ignored
   DUMP/                      local reversing artifacts, ignored by git
 ```
 
@@ -81,6 +83,8 @@ start_client.bat
 Project A Valorant\ShooterClient.exe
 ```
 
+If `toolkit\injector.exe` exists and neither `-UseToolkit`, `-NoToolkit`, nor `PROJECT_A_USE_TOOLKIT` is set, the batch launcher prompts whether the client should start with toolkit injection enabled.
+
 To use a different client executable:
 
 ```powershell
@@ -93,6 +97,13 @@ The lower-level PowerShell launcher is available for scripted runs:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\launch_client.ps1 -ClientExe "Project A Valorant\ShooterClient.exe" -RiotName "DevPlayer#LOCAL" -PatchClientCerts
+```
+
+Explicit toolkit control:
+
+```powershell
+.\start_client.bat -UseToolkit
+.\start_client.bat -NoToolkit
 ```
 
 ## Manual Server Start
@@ -198,6 +209,7 @@ PROJECTA_DATABASE_URL=postgresql://projecta:projecta@127.0.0.1:5432/projecta
 DATABASE_URL=postgresql://projecta:projecta@127.0.0.1:5432/projecta
 PROJECT_A_RIOT_ID=DevPlayer#LOCAL
 PROJECT_A_CLIENT_EXE=C:\Path\To\ShooterClient.exe
+PROJECT_A_USE_TOOLKIT=0
 PROJECT_A_AUTO_ACCEPT_FRIEND_REQUESTS=0
 PROJECT_A_ALLOW_UNVERIFIED_DEFAULT_LOADOUT=0
 ```
@@ -208,7 +220,8 @@ PROJECT_A_ALLOW_UNVERIFIED_DEFAULT_LOADOUT=0
 
 - `.venv*/`, `__pycache__/`, `.pytest_cache/`, coverage and build output.
 - `reverse-logs/`, `*.log`, `*.jsonl`, generated `*.crt`, `*.key`, and `*.pem` files.
-- `Project A Valorant/`, `DUMP/`, generated SDK output, IDA databases, executables, DLLs, PAK files, dumps, and certificate backups.
+- Real contents of `Project A Valorant/` while preserving the tracked placeholder file `Project A Valorant\PUT GAME HERE`.
+- `DUMP/`, generated SDK output, IDA databases, executables, DLLs, PAK files, dumps, and certificate backups.
 
 If you initialize git from this directory, these local artifacts should remain untracked unless force-added.
 

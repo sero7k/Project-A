@@ -2,7 +2,12 @@ name: CI
 
 on:
   push:
+    paths-ignore:
+      - "Project A Valorant/**"
   pull_request:
+    paths-ignore:
+      - "Project A Valorant/**"
+  workflow_dispatch:
 
 jobs:
   test:

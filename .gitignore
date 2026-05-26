@@ -40,10 +40,12 @@ reverse-logs/
 *.p12
 *.pfx
 
-# Local-only client/dump/reversing artifacts. These are not part of the repo.
+# Local-only client/dump/reversing artifacts. These are not part of the repo,
+# except for the tracked placeholder that keeps the expected client folder in-tree.
 DUMP/
 Dumper-7/
-Project A Valorant/
+Project A Valorant/*
+!Project A Valorant/PUT GAME HERE
 findings/
 AGENTS/
 reference/

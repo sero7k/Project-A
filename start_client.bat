@@ -32,6 +32,9 @@ if not defined HAS_CLIENT_EXE_ARG if not defined PROJECT_A_CLIENT_EXE (
   )
 )
 
+if not defined HAS_TOOLKIT_ARG if not defined PROJECT_A_USE_TOOLKIT if exist "%TOOLKIT_EXE%" (
+  set /p "PROJECT_A_USE_TOOLKIT=Launch with toolkit injected? [y/N]: "
+)
 if not defined PROJECT_A_USE_TOOLKIT set "PROJECT_A_USE_TOOLKIT=0"
 
 set "TOOLKIT_SWITCH="
