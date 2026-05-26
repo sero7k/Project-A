@@ -19,7 +19,7 @@ def parse_index_sequence(raw: str, *, label: str) -> list[int] | None:
     if normalized == "none":
         return []
     if normalized == "all":
-        return list(range(58))
+        return list(range(87))
     try:
         return [int(value.strip(), 0) for value in raw.split(",") if value.strip()]
     except ValueError as exc:
@@ -54,7 +54,7 @@ def main() -> int:
         default="none",
     )
     parser.add_argument("--udp-reply-hex", default="")
-    parser.add_argument("--map", default="/Game/Maps/Ascent/Ascent", help="UE4 map URL sent in the Welcome message after handshake completes.")
+    parser.add_argument("--map", default="/Game/Maps/Poveglia/Range", help="UE4 map URL sent in the Welcome message after handshake completes.")
     parser.add_argument("--game-mode", default="/Script/ShooterGame.ShooterGameMode", help="UE4 GameMode class path for the Welcome message.")
     parser.add_argument("--stateless-sequence", default="")
     parser.add_argument(

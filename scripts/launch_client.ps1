@@ -31,10 +31,15 @@ param(
   [switch]$ResetState,
   [int]$MatchmakingDelayMs = 0,
   [switch]$PatchClientCerts,
-  [switch]$UseToolkit
+  [switch]$UseToolkit,
+  [switch]$NoToolkit
 )
 
 $ErrorActionPreference = "Stop"
+
+if ($UseToolkit -and $NoToolkit) {
+  throw "Use either -UseToolkit or -NoToolkit, not both."
+}
 
 function Split-RiotId([string]$Raw, [string]$DefaultName, [string]$DefaultTag) {
   if ($null -eq $Raw) { $Raw = "" }
@@ -244,7 +249,7 @@ try {
       $GameSocketReply = "ares-handshake"
     }
     if (-not $HandshakeFinalSequence) {
-      $HandshakeFinalSequence = "52"
+      $HandshakeFinalSequence = "58"
     }
   }
   if (-not $NoGameSocket -and -not $GameSocketObserver -and $GameSocketReply -eq "none") {
@@ -318,9 +323,7 @@ try {
 
   $LocalCaPath = Join-Path $Root "reverse-logs\rnet_probe_ca.crt"
   if (Test-Path -LiteralPath $LocalCaPath) {
-    & certutil -user -delstore Root "Project A Local Probe CA" 2>&1 | Out-Null
-    & certutil -user -addstore -f Root $LocalCaPath 2>&1 | Out-Null
-    Write-Host "CA cert installed to CurrentUser\\Root"
+    Write-Host "CA cert ready at $LocalCaPath"
   } else {
     Write-Host "WARNING: CA cert not found at $LocalCaPath"
   }

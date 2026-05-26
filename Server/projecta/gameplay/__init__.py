@@ -1,5 +1,6 @@
 """Game-port observation and local protocol experiments."""
 
+from .ares_server import AresUdpServer
 from .ue_control_channel import (
     UE4ControlChannelHandler,
     ConnectionState,
@@ -12,6 +13,7 @@ from .ue_control_channel import (
 )
 
 __all__ = [
+    "AresUdpServer",
     "UE4ControlChannelHandler",
     "ConnectionState",
     "NMT",

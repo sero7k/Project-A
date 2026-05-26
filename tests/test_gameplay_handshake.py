@@ -8,6 +8,11 @@ if str(SERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(SERVER_ROOT))
 
 from projecta.gameplay.ares import analyze_ares_frame, stateless_candidate_ares_packets, stateless_final_ack_candidates
+from projecta.gameplay.handshake import (
+    HANDSHAKE_STATE_AWAITING_RESPONSE,
+    HANDSHAKE_STATE_CONNECTED,
+    handle_ares_handshake_packet,
+)
 from projecta.gameplay.packet_analysis import (
     analyze_client_challenge_response_74,
     analyze_client_initial_probe_74,
@@ -102,3 +107,43 @@ def test_final_ack_candidates_are_stable_and_selectable():
     assert candidates[58]["wire"][12:32] == CHALLENGE_RESPONSE_74[12:32]
     assert candidates[58]["wire"][32:36] == (301).to_bytes(4, "little")
     assert candidates[58]["wire"][36:74] == CHALLENGE_RESPONSE_74[36:74]
+
+
+class _FakeSocket:
+    def __init__(self):
+        self.sent = []
+
+    def sendto(self, packet, addr):
+        self.sent.append((packet, addr))
+
+
+def test_connected_initial_probe_resets_handshake_instead_of_ue4_dispatch(tmp_path):
+    sock = _FakeSocket()
+    states = {"127.0.0.1:7777": HANDSHAKE_STATE_CONNECTED}
+    tokens = {}
+    cookies = {}
+    initial_probe = analyze_client_initial_probe_74(INITIAL_PROBE_74)
+
+    response, candidate, wire_key = handle_ares_handshake_packet(
+        sock=sock,
+        addr=("127.0.0.1", 7777),
+        endpoint="127.0.0.1:7777",
+        data=INITIAL_PROBE_74,
+        initial_probe=initial_probe,
+        challenge_response=None,
+        protected_packet=None,
+        handshake_states=states,
+        handshake_tokens=tokens,
+        handshake_cookies=cookies,
+        handshake_final_sequence=[58],
+        control_handlers={},
+        game_state={},
+        log_path=tmp_path / "events.jsonl",
+        lock=__import__("threading").Lock(),
+    )
+
+    assert states["127.0.0.1:7777"] == HANDSHAKE_STATE_AWAITING_RESPONSE
+    assert candidate["candidate"] == "stateless-bit-f10-u0-c20"
+    assert wire_key == "wire_exact_clean_crc"
+    assert response
+    assert not sock.sent

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import socket
 import threading
 from pathlib import Path
@@ -12,20 +13,88 @@ from .ares import (
     analyze_ares_frame,
     append_packet_handler_marker,
     make_ares_frame,
+    make_ares_protected_frame_packet,
     make_ares_frame_packet,
     make_handshake_ack_74,
     make_stateless_component_payload,
     stateless_candidate_ares_packets,
     stateless_component_bit_count,
     stateless_final_ack_candidates,
+    unwrap_ares_protected_payload,
 )
 from .event_log import append_event
-from .ue_control_channel import UE4ControlChannelHandler
+from .ue_control_channel import UE4ControlChannelHandler, build_login_complete, build_welcome_response
 
 
 HANDSHAKE_STATE_AWAITING_PROBE = "awaiting_probe"
 HANDSHAKE_STATE_AWAITING_RESPONSE = "awaiting_response"
 HANDSHAKE_STATE_CONNECTED = "connected"
+_SELECTOR5_PROTECTED_SENT: set[tuple[str, int]] = set()
+
+
+def _parse_seed_list(raw: str) -> list[int]:
+    seeds: list[int] = []
+    for part in raw.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        seeds.append(int(part, 0) & 0xFFFFFFFF)
+    return seeds
+
+
+def _ares_payload_from_packet(packet: bytes) -> bytes:
+    if len(packet) < 6:
+        return b""
+    declared = int.from_bytes(packet[4:6], "little")
+    return packet[6:6 + declared]
+
+
+def _selector5_protected_seeds() -> list[int]:
+    raw = os.environ.get("PROJECT_A_SELECTOR5_PROTECTED_SEEDS", "").strip()
+    if not raw:
+        return []
+    return _parse_seed_list(raw)
+
+
+def _protected_reply_seeds() -> list[int]:
+    raw = os.environ.get("PROJECT_A_PROTECTED_REPLY_SEEDS", "").strip()
+    if raw:
+        return _parse_seed_list(raw)
+    seeds = _selector5_protected_seeds()
+    return seeds if seeds else [0]
+
+
+def _protected_seed_candidates(protected_packet: dict[str, Any] | None) -> list[int]:
+    seeds = list(_protected_reply_seeds())
+    if protected_packet:
+        counter = int(protected_packet.get("ares_counter_u32", 0)) & 0xFFFFFFFF
+        seeds.extend([
+            counter,
+            (counter - 2) & 0xFFFFFFFF,
+            (counter - 1) & 0xFFFFFFFF,
+            (counter + 1) & 0xFFFFFFFF,
+            (counter + 2) & 0xFFFFFFFF,
+        ])
+    deduped: list[int] = []
+    seen: set[int] = set()
+    for seed in seeds:
+        seed &= 0xFFFFFFFF
+        if seed not in seen:
+            seen.add(seed)
+            deduped.append(seed)
+    return deduped
+
+
+def _ue_game_mode_for_welcome(game_state: dict[str, Any] | None) -> str:
+    return os.environ.get(
+        "PROJECT_A_UE_GAME_MODE",
+        "/Script/ShooterGame.ShooterGameMode",
+    )
+
+
+def _is_valid_unprotected_ares_frame(data: bytes) -> bool:
+    frame = analyze_ares_frame(data)
+    return bool(frame and frame.get("checksum_ok") and frame.get("length_ok"))
 
 
 def _send_final_ack_candidates(
@@ -172,17 +241,81 @@ def handle_ares_handshake_packet(
             "event": "handshake_post_final_client_packet",
             "endpoint": endpoint,
             "u32_at_8": challenge_response.get("u32_at_8"),
+            "selector_at_10": challenge_response.get("selector_at_10"),
+            "component_payload_12_32_hex": challenge_response.get("component_payload_12_32_hex"),
             "bit_count_at_32": challenge_response.get("bit_count_at_32"),
             "payload_hex": challenge_response.get("payload_hex"),
         })
+        if challenge_response.get("u32_at_8") == 0x00050019 and challenge_response.get("bit_count_at_32") == 299:
+            append_event(log_path, lock, {
+                "event": "handshake_selector5_final_ack_seen",
+                "endpoint": endpoint,
+                "note": "client reached post-final selector 5; no raw74 adaptive reply sent",
+            })
+            seeds = _selector5_protected_seeds()
+            if seeds:
+                map_url = (game_state or {}).get("map", "/Game/Maps/Ascent/Ascent")
+                game_mode = _ue_game_mode_for_welcome(game_state)
+                welcome_payload = _ares_payload_from_packet(build_welcome_response(map_url, game_mode))
+                login_payload = _ares_payload_from_packet(build_login_complete())
+                for seed in seeds:
+                    sent_key = (endpoint, seed)
+                    if sent_key in _SELECTOR5_PROTECTED_SENT:
+                        continue
+                    _SELECTOR5_PROTECTED_SENT.add(sent_key)
+                    for message_name, payload in (("welcome", welcome_payload), ("login_complete", login_payload)):
+                        packet = make_ares_protected_frame_packet(payload, seed)
+                        try:
+                            sock.sendto(packet, addr)
+                            append_event(log_path, lock, {
+                                "event": "selector5_protected_control_sent",
+                                "endpoint": endpoint,
+                                "message": message_name,
+                                "seed": seed,
+                                "length": len(packet),
+                                "hex_preview": packet[:48].hex(),
+                            })
+                        except OSError as exc:
+                            append_event(log_path, lock, {
+                                "event": "selector5_protected_control_error",
+                                "endpoint": endpoint,
+                                "message": message_name,
+                                "seed": seed,
+                                "error": repr(exc),
+                            })
+
+    elif initial_probe and endpoint_state == HANDSHAKE_STATE_CONNECTED:
+        token = data[36:68]
+        cookie_a = hashlib.sha1(b"project-a-local-stateless-cookie-a" + token).digest()
+        handshake_tokens[endpoint] = token
+        handshake_cookies[endpoint] = cookie_a
+        candidate = stateless_candidate_ares_packets(data)[1]
+        response = candidate["wire_exact_clean_crc"]
+        response_candidate = candidate
+        response_wire_key = "wire_exact_clean_crc"
+        handshake_states[endpoint] = HANDSHAKE_STATE_AWAITING_RESPONSE
+        append_event(log_path, lock, {
+            "event": "handshake_reset_challenge_sent",
+            "endpoint": endpoint,
+            "state": HANDSHAKE_STATE_AWAITING_RESPONSE,
+        })
 
     elif endpoint_state == HANDSHAKE_STATE_CONNECTED:
-        # Route packets through UE4 control channel handler if available
-        if control_handlers is not None:
+        if control_handlers is not None and not protected_packet and not _is_valid_unprotected_ares_frame(data):
+            append_event(log_path, lock, {
+                "event": "ue4_control_blocked_missing_ares_protection",
+                "endpoint": endpoint,
+                "length": len(data),
+                "first32_hex": data[:32].hex(),
+                "note": "post-handshake packet is neither known protected packet nor CRC-valid Ares frame; no bare UE control reply sent",
+            })
+
+        # Route only packets that at least satisfy a known post-handshake wrapper shape.
+        elif control_handlers is not None:
             if endpoint not in control_handlers:
                 # Create a new handler for this endpoint
                 map_url = (game_state or {}).get("map", "/Game/Maps/Ascent/Ascent")
-                game_mode = (game_state or {}).get("game_mode", "/Script/ShooterGame.ShooterGameMode")
+                game_mode = _ue_game_mode_for_welcome(game_state)
                 control_handlers[endpoint] = UE4ControlChannelHandler(
                     map_url=map_url,
                     game_mode=game_mode,
@@ -195,23 +328,63 @@ def handle_ares_handshake_packet(
                 })
 
             handler = control_handlers[endpoint]
-            ue4_responses = handler.handle_packet(data)
+            handler_input = data
+            unwrapped_protected: dict[str, Any] | None = None
+            if protected_packet:
+                unwrapped_protected = unwrap_ares_protected_payload(
+                    bytes.fromhex(protected_packet["protected_payload_hex"]),
+                    _protected_seed_candidates(protected_packet),
+                )
+                if unwrapped_protected:
+                    handler_input = unwrapped_protected["frame"]
+                append_event(log_path, lock, {
+                    "event": "ares_protected_unwrap_attempt",
+                    "endpoint": endpoint,
+                    "ok": bool(unwrapped_protected),
+                    "seed": unwrapped_protected.get("seed") if unwrapped_protected else None,
+                    "dropped_marker": unwrapped_protected.get("dropped_marker") if unwrapped_protected else None,
+                    "frame_length": unwrapped_protected.get("frame_length") if unwrapped_protected else None,
+                    "declared_length": unwrapped_protected.get("declared_length") if unwrapped_protected else None,
+                })
+                if not unwrapped_protected:
+                    append_event(log_path, lock, {
+                        "event": "ue4_control_blocked_unwrapped_protected_missing",
+                        "endpoint": endpoint,
+                        "counter": protected_packet.get("ares_counter_u32"),
+                        "protected_payload_length": protected_packet.get("protected_payload_length"),
+                        "note": "protected client payload did not unwrap to a CRC-valid Ares frame; no guessed UE reply sent",
+                    })
+                    return response, response_candidate, response_wire_key
+
+            ue4_responses = handler.handle_packet(handler_input)
             for ue4_pkt in ue4_responses:
-                try:
-                    sock.sendto(ue4_pkt, addr)
-                    append_event(log_path, lock, {
-                        "event": "ue4_control_packet_sent",
-                        "endpoint": endpoint,
-                        "state": handler.state,
-                        "packet_length": len(ue4_pkt),
-                        "packet_hex_preview": ue4_pkt[:32].hex(),
-                    })
-                except OSError as exc:
-                    append_event(log_path, lock, {
-                        "event": "ue4_control_packet_error",
-                        "endpoint": endpoint,
-                        "error": repr(exc),
-                    })
+                outgoing_packets: list[tuple[bytes, int | None]] = [(ue4_pkt, None)]
+                if protected_packet:
+                    seeds = _protected_reply_seeds()
+                    payload = _ares_payload_from_packet(ue4_pkt)
+                    if seeds and payload:
+                        outgoing_packets = [
+                            (make_ares_protected_frame_packet(payload, seed), seed)
+                            for seed in seeds
+                        ]
+                for outgoing_pkt, protected_seed in outgoing_packets:
+                    try:
+                        sock.sendto(outgoing_pkt, addr)
+                        append_event(log_path, lock, {
+                            "event": "ue4_control_packet_sent",
+                            "endpoint": endpoint,
+                            "state": handler.state,
+                            "protected_seed": protected_seed,
+                            "packet_length": len(outgoing_pkt),
+                            "packet_hex_preview": outgoing_pkt[:32].hex(),
+                        })
+                    except OSError as exc:
+                        append_event(log_path, lock, {
+                            "event": "ue4_control_packet_error",
+                            "endpoint": endpoint,
+                            "protected_seed": protected_seed,
+                            "error": repr(exc),
+                        })
 
         elif protected_packet:
             keepalive = bytearray(28)
@@ -253,22 +426,5 @@ def handle_ares_handshake_packet(
                     })
                 except OSError as exc:
                     append_event(log_path, lock, {"event": "handshake_frame_ack_error", "endpoint": endpoint, "error": repr(exc)})
-
-    elif initial_probe and endpoint_state == HANDSHAKE_STATE_CONNECTED:
-        handshake_states[endpoint] = HANDSHAKE_STATE_AWAITING_PROBE
-        token = data[36:68]
-        cookie_a = hashlib.sha1(b"project-a-local-stateless-cookie-a" + token).digest()
-        handshake_tokens[endpoint] = token
-        handshake_cookies[endpoint] = cookie_a
-        candidate = stateless_candidate_ares_packets(data)[1]
-        response = candidate["wire_exact_clean_crc"]
-        response_candidate = candidate
-        response_wire_key = "wire_exact_clean_crc"
-        handshake_states[endpoint] = HANDSHAKE_STATE_AWAITING_RESPONSE
-        append_event(log_path, lock, {
-            "event": "handshake_reset_challenge_sent",
-            "endpoint": endpoint,
-            "state": HANDSHAKE_STATE_AWAITING_RESPONSE,
-        })
 
     return response, response_candidate, response_wire_key

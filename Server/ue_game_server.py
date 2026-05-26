@@ -23,7 +23,7 @@ def main() -> int:
     if not _has_option("--udp-reply"):
         sys.argv.extend(["--udp-reply", "ares-handshake"])
     if not _has_option("--handshake-final-sequence"):
-        sys.argv.extend(["--handshake-final-sequence", "52"])
+        sys.argv.extend(["--handshake-final-sequence", "68"])
     return _socket.main()
 
 

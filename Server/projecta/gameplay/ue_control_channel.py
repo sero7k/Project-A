@@ -72,36 +72,43 @@ class ConnectionState:
 
 
 # ---------------------------------------------------------------------------
-# UE4 Bunch Header Bits (simplified layout)
+# UE4 Bunch Header Bits (UE 4.22 layout)
 #
 # UE4 bunch headers are bit-packed. The minimal layout is:
-#   1 bit  - bControl (is this a control message?)
-#   1 bit  - bOpen (open channel)
-#   1 bit  - bClose (close channel)
-#   1 bit  - bDormant (only if bClose)
+#   1 bit  - bHasControlFlags (bOpen || bClose)
+#   if bHasControlFlags:
+#       1 bit  - bOpen
+#       1 bit  - bClose
+#       if bClose: SerializeInt(CloseReason, EChannelCloseReason::MAX)
 #   1 bit  - bIsReplicationPaused
 #   1 bit  - bReliable
-#   variable - ChIndex (UE4 uses packed int, typically 10 bits for < 1024)
+#   variable - ChIndex (SerializeIntPacked)
 #   1 bit  - bHasPackageMapExports
 #   1 bit  - bHasMustBeMappedGUIDs
 #   1 bit  - bPartial
 #   if bReliable:
-#       12 bits - ChSequence (reliable sequence number)
+#       WriteIntWrapped(ChSequence, MAX_CHSEQUENCE)
 #   if bPartial:
 #       1 bit - bPartialInitial
 #       1 bit - bPartialFinal
-#   variable - ChType (if bOpen, packed int for channel type)
-#   variable - BunchDataBits (serialized int, number of data bits)
+#   if bReliable || bOpen:
+#       StaticSerializeName(ChName)
+#   variable - BunchDataBits (WriteIntWrapped, MaxPacket * 8)
 #   BunchDataBits bits - Bunch payload
 # ---------------------------------------------------------------------------
 
 # Channel types
-CHTYPE_CONTROL = 0
-CHTYPE_ACTOR = 1
-CHTYPE_VOICE = 2
+CHTYPE_CONTROL = 1
+CHTYPE_ACTOR = 2
+CHTYPE_VOICE = 4
+
+MAX_CHSEQUENCE = 1024
+MAX_PACKET_SIZE = 1024
+MAX_PACKET_BITS = MAX_PACKET_SIZE * 8
+NAME_CONTROL_INDEX = 255
 
 # Default settings
-DEFAULT_MAP_URL = "/Game/Maps/Ascent/Ascent"
+DEFAULT_MAP_URL = "/Game/Maps/Poveglia/Range"
 DEFAULT_GAME_MODE = "/Script/ShooterGame.ShooterGameMode"
 
 # Sequence tracking
@@ -139,28 +146,29 @@ class BitReader:
                 value |= (1 << i)
         return value
 
-    def read_packed_int(self, max_value: int = 1023) -> int:
-        """Read a UE4 packed integer. For channel index this is typically 10 bits."""
-        # Simplified: for channel indices < 1024, UE4 uses 10-bit encoding
-        bit_count = max_value.bit_length()
-        return self.read_bits(bit_count)
+    def read_int_wrapped(self, value_max: int) -> int:
+        """Read UE4 SerializeInt/WriteIntWrapped encoding."""
+        value = 0
+        mask = 1
+        while value + mask < value_max and mask:
+            if self.read_bit():
+                value |= mask
+            mask <<= 1
+        return value
 
     def read_int_packed(self) -> int:
         """Read a UE4 variable-length packed integer (SerializeIntPacked).
 
-        Each byte contributes 7 data bits. The MSB of each byte indicates
-        whether more bytes follow (0 = last byte).
+        UE4 stores continuation in bit 0 and seven payload bits in bits 1..7.
         """
         value = 0
         shift = 0
-        while True:
+        for _ in range(5):
             byte_val = self.read_bits(8)
-            value |= (byte_val & 0x7F) << shift
-            if not (byte_val & 0x80):
+            value |= (byte_val >> 1) << shift
+            if not (byte_val & 1):
                 break
             shift += 7
-            if shift > 35:  # safety limit
-                break
         return value
 
     def read_bytes(self, count: int) -> bytes:
@@ -184,36 +192,39 @@ def parse_bunch_header(data: bytes) -> dict[str, Any] | None:
     result: dict[str, Any] = {}
 
     try:
-        result["bControl"] = reader.read_bit()
-        result["bOpen"] = reader.read_bit()
-        result["bClose"] = reader.read_bit()
+        result["bHasControlFlags"] = reader.read_bit()
+        result["bControl"] = result["bHasControlFlags"]
+        result["bOpen"] = False
+        result["bClose"] = False
 
-        if result["bClose"]:
-            result["bDormant"] = reader.read_bit()
+        if result["bHasControlFlags"]:
+            result["bOpen"] = reader.read_bit()
+            result["bClose"] = reader.read_bit()
+            if result["bClose"]:
+                result["CloseReason"] = reader.read_int_wrapped(4)
 
         result["bIsReplicationPaused"] = reader.read_bit()
         result["bReliable"] = reader.read_bit()
 
-        # Channel index - UE4 uses packed int, for small indices it's 10 bits
-        result["ChIndex"] = reader.read_packed_int(1023)
+        result["ChIndex"] = reader.read_int_packed()
 
         result["bHasPackageMapExports"] = reader.read_bit()
         result["bHasMustBeMappedGUIDs"] = reader.read_bit()
         result["bPartial"] = reader.read_bit()
 
         if result["bReliable"]:
-            result["ChSequence"] = reader.read_bits(12)
+            result["ChSequence"] = reader.read_int_wrapped(MAX_CHSEQUENCE)
 
         if result["bPartial"]:
             result["bPartialInitial"] = reader.read_bit()
             result["bPartialFinal"] = reader.read_bit()
 
-        if result["bOpen"]:
-            # Channel type as packed int
-            result["ChType"] = reader.read_packed_int(7)
+        if result["bReliable"] or result["bOpen"]:
+            result["ChName"] = _read_static_name(reader)
+            if result["ChName"] == "Control":
+                result["ChType"] = CHTYPE_CONTROL
 
-        # Bunch data bit count (serialized as IntPacked in some builds)
-        result["BunchDataBits"] = reader.read_int_packed()
+        result["BunchDataBits"] = reader.read_int_wrapped(MAX_PACKET_BITS)
         result["header_bits_consumed"] = reader.bit_pos
 
         # Read bunch payload (up to available data)
@@ -274,6 +285,87 @@ def _write_ue4_string(writer: BitWriter, s: str) -> None:
     writer.write_bytes(encoded)
 
 
+def _write_int_wrapped(writer: BitWriter, value: int, value_max: int) -> None:
+    """Write UE4 FBitWriter::WriteIntWrapped."""
+    if value_max < 2:
+        raise ValueError("value_max must be >= 2")
+    mask = 1
+    new_value = 0
+    while new_value + mask < value_max and mask:
+        writer.write_bit(bool(value & mask))
+        if value & mask:
+            new_value += mask
+        mask <<= 1
+
+
+def _write_int_packed(writer: BitWriter, value: int) -> None:
+    """Write UE4 SerializeIntPacked (bit0 continuation, bits1..7 payload)."""
+    value &= 0xFFFFFFFF
+    while True:
+        has_more = (value & ~0x7F) != 0
+        byte_val = ((value & 0x7F) << 1) | (1 if has_more else 0)
+        writer.write_bytes(bytes([byte_val]))
+        value >>= 7
+        if not has_more:
+            break
+
+
+def _write_static_name_control(writer: BitWriter) -> None:
+    """Write UPackageMap::StaticSerializeName for NAME_Control."""
+    writer.write_bit(True)  # hardcoded FName
+    _write_int_packed(writer, NAME_CONTROL_INDEX)
+
+
+def _read_static_name(reader: BitReader) -> str:
+    """Read enough of StaticSerializeName to recognize NAME_Control."""
+    if reader.read_bit():
+        name_index = reader.read_int_packed()
+        return "Control" if name_index == NAME_CONTROL_INDEX else f"HardcodedName({name_index})"
+
+    # Non-hardcoded FString path. This is best-effort; control channel should
+    # be hardcoded in normal UE4 traffic.
+    length = reader.read_bits(32)
+    if length <= 0 or length > 4096:
+        return "NameString(?)"
+    raw = reader.read_bytes(length)
+    _number = reader.read_bits(32)
+    return raw.rstrip(b"\x00").decode("utf-8", errors="replace")
+
+
+def _write_bunch_header(
+    writer: BitWriter,
+    *,
+    b_open: bool = False,
+    b_close: bool = False,
+    b_reliable: bool = True,
+    ch_index: int = 0,
+    ch_sequence: int = 0,
+    bunch_data_bits: int = 0,
+) -> None:
+    """Write UE4.22 FOutBunch header."""
+    writer.write_bit(b_open or b_close)
+    if b_open or b_close:
+        writer.write_bit(b_open)
+        writer.write_bit(b_close)
+        if b_close:
+            _write_int_wrapped(writer, 0, 4)  # EChannelCloseReason::Destroyed
+
+    writer.write_bit(False)  # bIsReplicationPaused
+    writer.write_bit(b_reliable)
+    _write_int_packed(writer, ch_index)
+    writer.write_bit(False)  # bHasPackageMapExports
+    writer.write_bit(False)  # bHasMustBeMappedGUIDs
+    writer.write_bit(False)  # bPartial
+
+    if b_reliable:
+        _write_int_wrapped(writer, ch_sequence, MAX_CHSEQUENCE)
+
+    if b_reliable or b_open:
+        _write_static_name_control(writer)
+
+    _write_int_wrapped(writer, bunch_data_bits, MAX_PACKET_BITS)
+
+
 def _build_bunch_header(
     *,
     b_control: bool = False,
@@ -286,53 +378,18 @@ def _build_bunch_header(
     bunch_data_bits: int = 0,
 ) -> bytes:
     """Build a UE4 bunch header as bit-packed bytes."""
+    _ = b_control, ch_type
     writer = BitWriter()
-
-    writer.write_bit(b_control)
-    writer.write_bit(b_open)
-    writer.write_bit(b_close)
-
-    if b_close:
-        writer.write_bit(False)  # bDormant
-
-    writer.write_bit(False)  # bIsReplicationPaused
-    writer.write_bit(b_reliable)
-
-    # Channel index (10 bits for indices < 1024)
-    for i in range(10):
-        writer.write_bit(bool(ch_index & (1 << i)))
-
-    writer.write_bit(False)  # bHasPackageMapExports
-    writer.write_bit(False)  # bHasMustBeMappedGUIDs
-    writer.write_bit(False)  # bPartial
-
-    if b_reliable:
-        # ChSequence: 12 bits
-        for i in range(12):
-            writer.write_bit(bool(ch_sequence & (1 << i)))
-
-    if b_open:
-        # Channel type (3 bits for values < 8)
-        for i in range(3):
-            writer.write_bit(bool(ch_type & (1 << i)))
-
-    # BunchDataBits as IntPacked (variable-length encoding)
-    _write_int_packed(writer, bunch_data_bits)
-
+    _write_bunch_header(
+        writer,
+        b_open=b_open,
+        b_close=b_close,
+        b_reliable=b_reliable,
+        ch_index=ch_index,
+        ch_sequence=ch_sequence,
+        bunch_data_bits=bunch_data_bits,
+    )
     return writer.finish()
-
-
-def _write_int_packed(writer: BitWriter, value: int) -> None:
-    """Write a UE4 SerializeIntPacked value (7 bits per byte, MSB = more)."""
-    while True:
-        byte_val = value & 0x7F
-        value >>= 7
-        if value > 0:
-            byte_val |= 0x80
-        for i in range(8):
-            writer.write_bit(bool(byte_val & (1 << i)))
-        if value == 0:
-            break
 
 
 def build_welcome_response(map_url: str, game_mode: str = DEFAULT_GAME_MODE) -> bytes:
@@ -364,29 +421,17 @@ def build_welcome_response(map_url: str, game_mode: str = DEFAULT_GAME_MODE) -> 
     payload_data = payload_writer.finish()
     payload_data_bits = payload_writer.bit_count
 
-    # Build bunch header (open + reliable on channel 0)
-    header = _build_bunch_header(
-        b_control=True,
+    combined_writer = BitWriter()
+    _write_bunch_header(
+        combined_writer,
         b_open=True,
         b_close=False,
         b_reliable=True,
         ch_index=0,
         ch_sequence=INITIAL_OUTGOING_SEQUENCE,
-        ch_type=CHTYPE_CONTROL,
         bunch_data_bits=payload_data_bits,
     )
-
-    # Combine header + payload
-    # We need to bit-concatenate header and payload
-    combined_writer = BitWriter()
-    # Write header bits
-    for byte in header:
-        for i in range(8):
-            combined_writer.write_bit(bool(byte & (1 << i)))
-    # Write payload bits
-    for byte in payload_data:
-        for i in range(8):
-            combined_writer.write_bit(bool(byte & (1 << i)))
+    combined_writer.write_bytes(payload_data)
 
     bunch_bytes = combined_writer.finish()
 
@@ -414,25 +459,17 @@ def build_login_complete() -> bytes:
     payload_data = payload_writer.finish()
     payload_data_bits = payload_writer.bit_count
 
-    # Build bunch header (reliable, channel 0, sequence 2)
-    header = _build_bunch_header(
-        b_control=True,
+    combined_writer = BitWriter()
+    _write_bunch_header(
+        combined_writer,
         b_open=False,
         b_close=False,
         b_reliable=True,
         ch_index=0,
         ch_sequence=INITIAL_OUTGOING_SEQUENCE + 1,
-        ch_type=CHTYPE_CONTROL,
         bunch_data_bits=payload_data_bits,
     )
-
-    combined_writer = BitWriter()
-    for byte in header:
-        for i in range(8):
-            combined_writer.write_bit(bool(byte & (1 << i)))
-    for byte in payload_data:
-        for i in range(8):
-            combined_writer.write_bit(bool(byte & (1 << i)))
+    combined_writer.write_bytes(payload_data)
 
     bunch_bytes = combined_writer.finish()
 
