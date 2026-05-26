@@ -1,1 +1,1 @@
-"""Server package for the Project A local service emulator."""
+"""Compatibility package exposing the Project A local server."""

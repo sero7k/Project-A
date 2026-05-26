@@ -1,2 +1,2 @@
-cryptography>=42
-psycopg[binary]>=3.2
+cryptography>=42,<45
+psycopg[binary,pool]>=3.1,<4

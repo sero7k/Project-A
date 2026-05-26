@@ -1,0 +1,81 @@
+# Python/cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# Packaging/build outputs
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+.venv*/
+venv/
+env/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Runtime output
+logs/
+reverse-logs/
+*.log
+*.jsonl
+*.crt
+*.key
+*.pem
+*.bak-local-ca
+*.p12
+*.pfx
+
+# Local-only client/dump/reversing artifacts. These are not part of the repo.
+DUMP/
+Dumper-7/
+Project A Valorant/
+findings/
+AGENTS/
+reference/
+reverse_tools/
+SDK/
+GeneratedSDK/
+*.exe
+*.dll
+*.pak
+*.sig
+*.i64
+*.idb
+*.id0
+*.id1
+*.id2
+*.nam
+*.til
+*.pdb
+*.dmp
+*.bin
+*.sys
+
+# Keep the local toolkit in-repo for this project.
+!toolkit/
+!toolkit/*.bin
+!toolkit/*.bat
+!toolkit/*.cpp
+!toolkit/*.exe
+!toolkit/*.dll
+
+# Editor/OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
