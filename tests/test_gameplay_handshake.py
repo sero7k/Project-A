@@ -84,7 +84,9 @@ def test_known_stateless_reply_fixture_is_stable():
 def test_final_ack_candidates_are_stable_and_selectable():
     candidates = stateless_final_ack_candidates(INITIAL_PROBE_74[36:68], CHALLENGE_RESPONSE_74)
 
-    assert len(candidates) == 68
+    # The generator intentionally grows as new protocol-lab ACK variants are
+    # added; keep this pinned so accidental candidate churn is still visible.
+    assert len(candidates) == 87
     assert candidates[0]["candidate"] == "raw74-final-bit-f10-u1-cookie-a-u2-b303"
     assert candidates[0]["wire_key"] == "raw74"
     assert len(candidates[0]["wire"]) == 74
