@@ -493,7 +493,7 @@ def _ensure_game_server_running(game_state: dict[str, Any]) -> None:
         "--host", host,
         "--port", port,
         "--log", str(log_file),
-        "--seconds", "3600",
+        "--seconds", "7200",
         "--map", map_url,
     ]
     try:
@@ -502,6 +502,10 @@ def _ensure_game_server_running(game_state: dict[str, Any]) -> None:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+        # Give the subprocess time to bind its UDP socket before the client
+        # receives ConnectionDetails and tries to connect.
+        import time as _time
+        _time.sleep(0.5)
     except Exception:
         pass  # Best-effort; client will get timeout if this fails
 

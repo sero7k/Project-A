@@ -204,6 +204,22 @@ function Resolve-ClientRoot([string]$ExecutablePath) {
   return (Split-Path -Parent $ResolvedExe)
 }
 
+function Get-ClientCertBundlePaths([string]$Root) {
+  $RelativePaths = @(
+    "Certificates\cacert.pem",
+    "Certificates\ThirdParty\cacert.pem",
+    "Engine\Binaries\Win64\Certificates\cacert.pem",
+    "Engine\Binaries\Win64\Certificates\ThirdParty\cacert.pem",
+    "Engine\Content\Certificates\cacert.pem",
+    "Engine\Content\Certificates\ThirdParty\cacert.pem",
+    "ShooterGame\Binaries\Win64\Certificates\cacert.pem",
+    "ShooterGame\Binaries\Win64\Certificates\ThirdParty\cacert.pem",
+    "ShooterGame\Content\Certificates\cacert.pem",
+    "ShooterGame\Content\Certificates\ThirdParty\cacert.pem"
+  )
+  return $RelativePaths | ForEach-Object { Join-Path $Root $_ }
+}
+
 if (-not (Test-Path -LiteralPath $Exe)) {
   throw "Game executable not found: $Exe. Pass -ClientExe or set PROJECT_A_CLIENT_EXE."
 }
@@ -325,25 +341,32 @@ try {
     }
     Write-Host "PATCH_CLIENT_CERT_ROOT=$ClientRoot"
     $PatchedBundles = 0
-    Get-ChildItem -LiteralPath $ClientRoot -Recurse -Filter "cacert.pem" -ErrorAction Stop | ForEach-Object {
+    $DiscoveredBundles = @(Get-ChildItem -LiteralPath $ClientRoot -Recurse -Filter "cacert.pem" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+    $CandidateBundles = @(Get-ClientCertBundlePaths $ClientRoot)
+    $BundlePaths = @($DiscoveredBundles + $CandidateBundles | Where-Object { $_ } | Sort-Object -Unique)
+    foreach ($BundlePath in $BundlePaths) {
       try {
-        $BundleText = Get-Content -LiteralPath $_.FullName -Raw -ErrorAction Stop
+        $CreatedBundle = $false
+        if (-not (Test-Path -LiteralPath $BundlePath)) {
+          $BundleDir = Split-Path -Parent $BundlePath
+          New-Item -ItemType Directory -Force -Path $BundleDir | Out-Null
+          Set-Content -LiteralPath $BundlePath -Value ($LocalCaText + "`r`n") -NoNewline -Encoding ascii -ErrorAction Stop
+          $CreatedBundle = $true
+        }
+        $BundleText = Get-Content -LiteralPath $BundlePath -Raw -ErrorAction Stop
         $BundleText = Remove-ProjectALocalCa $BundleText
         if ($BundleText -notlike "*$LocalCaText*") {
-          $Backup = "$($_.FullName).bak-local-ca"
-          if (-not (Test-Path -LiteralPath $Backup)) {
-            Copy-Item -LiteralPath $_.FullName -Destination $Backup -ErrorAction Stop
+          $Backup = "$BundlePath.bak-local-ca"
+          if (-not $CreatedBundle -and -not (Test-Path -LiteralPath $Backup)) {
+            Copy-Item -LiteralPath $BundlePath -Destination $Backup -ErrorAction Stop
           }
-          Set-Content -LiteralPath $_.FullName -Value ($BundleText.TrimEnd() + "`r`n`r`n" + $LocalCaText + "`r`n") -NoNewline -Encoding ascii -ErrorAction Stop
+          Set-Content -LiteralPath $BundlePath -Value ($BundleText.TrimEnd() + "`r`n`r`n" + $LocalCaText + "`r`n") -NoNewline -Encoding ascii -ErrorAction Stop
         }
         $PatchedBundles += 1
-        Write-Host "PATCHED_CLIENT_CERT=$($_.FullName)"
+        Write-Host "PATCHED_CLIENT_CERT=$BundlePath"
       } catch {
-        throw "failed to patch client certificate bundle $($_.FullName): $($_.Exception.Message)"
+        throw "failed to patch client certificate bundle ${BundlePath}: $($_.Exception.Message)"
       }
-    }
-    if ($PatchedBundles -eq 0) {
-      throw "no client cacert.pem bundles found under $ClientRoot"
     }
   }
 

@@ -87,7 +87,7 @@ To use a different client executable:
 .\start_client.bat -ClientExe "C:\Path\To\ShooterClient.exe"
 ```
 
-The client launcher patches only the local `Project A Valorant` `cacert.pem` bundles so the client trusts the generated local server certificate. Backups are written as `*.bak-local-ca`, and both the client folder and backups are ignored by git.
+The client launcher patches only the local `Project A Valorant` certificate bundles so the client trusts the generated local server certificate. If the client folder does not contain `cacert.pem` files yet, the launcher creates the expected bundle paths automatically. Backups for existing files are written as `*.bak-local-ca`, and both the client folder and backups are ignored by git.
 
 The lower-level PowerShell launcher is available for scripted runs:
 
