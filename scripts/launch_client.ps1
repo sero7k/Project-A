@@ -30,7 +30,8 @@ param(
   [switch]$NoDbMigrate,
   [switch]$ResetState,
   [int]$MatchmakingDelayMs = 0,
-  [switch]$PatchClientCerts
+  [switch]$PatchClientCerts,
+  [switch]$UseToolkit
 )
 
 $ErrorActionPreference = "Stop"
@@ -232,6 +233,11 @@ $Client = $null
 $Observer = $null
 
 try {
+  # Match the older working launcher behavior: always regenerate a fresh probe cert set.
+  Remove-Item -LiteralPath (Join-Path $Out "rnet_probe.crt") -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath (Join-Path $Out "rnet_probe.key") -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath (Join-Path $Out "rnet_probe_ca.crt") -ErrorAction SilentlyContinue
+
   if ($UEGameServer) {
     $GameSocketObserver = $true
     if ($GameSocketReply -eq "none") {
@@ -311,6 +317,13 @@ try {
   }
 
   $LocalCaPath = Join-Path $Root "reverse-logs\rnet_probe_ca.crt"
+  if (Test-Path -LiteralPath $LocalCaPath) {
+    & certutil -user -delstore Root "Project A Local Probe CA" 2>&1 | Out-Null
+    & certutil -user -addstore -f Root $LocalCaPath 2>&1 | Out-Null
+    Write-Host "CA cert installed to CurrentUser\\Root"
+  } else {
+    Write-Host "WARNING: CA cert not found at $LocalCaPath"
+  }
   if ($PatchClientCerts) {
     $LocalCaText = (Get-Content -LiteralPath $LocalCaPath -Raw).Trim()
     $LocalCaSubject = "CN=Project A Local Probe CA"
@@ -441,6 +454,7 @@ try {
   Write-Host "PROJECT_A_DATABASE_URL=$EffectiveDatabaseUrl"
   Write-Host "PROJECT_A_MATCHMAKING_DELAY_MS=$MatchmakingDelayMs"
   Write-Host "PROJECT_A_PATCH_CLIENT_CERTS=$PatchClientCerts"
+  Write-Host "PROJECT_A_USE_TOOLKIT=$UseToolkit"
   if ($ExclusiveFullscreen) {
     Write-Host "PROJECT_A_DISPLAY_MODE=exclusive-fullscreen"
   } elseif ($BorderlessFullscreen) {
@@ -474,6 +488,19 @@ try {
   }
 
   $Client = Start-ExactProcess $Exe $ClientArgs $Cwd $EnvVars
+  if ($UseToolkit) {
+    $ToolkitExe = Join-Path $Root "toolkit\injector.exe"
+    if (-not (Test-Path -LiteralPath $ToolkitExe)) {
+      throw "toolkit injector not found: $ToolkitExe"
+    }
+    Write-Host "TOOLKIT_INJECTION=starting"
+    & $ToolkitExe
+    if ($LASTEXITCODE -ne 0) {
+      throw "toolkit injector exited with code $LASTEXITCODE"
+    }
+    Write-Host "TOOLKIT_INJECTION=complete"
+    Write-Host "TOOLKIT_LOG=$(Join-Path $Root 'toolkit\toolkit.log')"
+  }
   $Started = Get-Date
   while ($true) {
     Start-Sleep -Seconds 2

@@ -4,11 +4,14 @@ cd /d "%~dp0"
 
 set "HAS_RIOT_ARG="
 set "HAS_CLIENT_EXE_ARG="
+set "HAS_TOOLKIT_ARG="
 for %%A in (%*) do (
   if /I "%%~A"=="-RiotName" set "HAS_RIOT_ARG=1"
   if /I "%%~A"=="-TagLine" set "HAS_RIOT_ARG=1"
   if /I "%%~A"=="-AccountKey" set "HAS_RIOT_ARG=1"
   if /I "%%~A"=="-ClientExe" set "HAS_CLIENT_EXE_ARG=1"
+  if /I "%%~A"=="-UseToolkit" set "HAS_TOOLKIT_ARG=1"
+  if /I "%%~A"=="-NoToolkit" set "HAS_TOOLKIT_ARG=1"
 )
 
 if not defined HAS_RIOT_ARG if not defined PROJECT_A_RIOT_ID (
@@ -17,6 +20,7 @@ if not defined HAS_RIOT_ARG if not defined PROJECT_A_RIOT_ID (
 )
 
 set "DEFAULT_CLIENT_EXE=%~dp0Project A Valorant\ShooterClient.exe"
+set "TOOLKIT_EXE=%~dp0toolkit\injector.exe"
 if not defined HAS_CLIENT_EXE_ARG if not defined PROJECT_A_CLIENT_EXE (
   set "PROJECT_A_CLIENT_EXE=%DEFAULT_CLIENT_EXE%"
   if not exist "%DEFAULT_CLIENT_EXE%" (
@@ -27,6 +31,22 @@ if not defined HAS_CLIENT_EXE_ARG if not defined PROJECT_A_CLIENT_EXE (
   )
 )
 
+if not defined HAS_TOOLKIT_ARG if not defined PROJECT_A_USE_TOOLKIT if exist "%TOOLKIT_EXE%" (
+  set /p "PROJECT_A_USE_TOOLKIT=Launch with toolkit injected? [y/N]: "
+)
+if not defined PROJECT_A_USE_TOOLKIT set "PROJECT_A_USE_TOOLKIT=0"
+
+set "TOOLKIT_SWITCH="
+if /I "%PROJECT_A_USE_TOOLKIT%"=="1" set "TOOLKIT_SWITCH=-UseToolkit"
+if /I "%PROJECT_A_USE_TOOLKIT%"=="y" set "TOOLKIT_SWITCH=-UseToolkit"
+if /I "%PROJECT_A_USE_TOOLKIT%"=="yes" set "TOOLKIT_SWITCH=-UseToolkit"
+if /I "%PROJECT_A_USE_TOOLKIT%"=="true" set "TOOLKIT_SWITCH=-UseToolkit"
+
+if defined TOOLKIT_SWITCH if not exist "%TOOLKIT_EXE%" (
+  echo Toolkit injector not found at:
+  echo   %TOOLKIT_EXE%
+  goto :fail
+)
 set "PYTHON_CMD=python"
 where py >nul 2>nul
 if not errorlevel 1 set "PYTHON_CMD=py -3"
@@ -63,7 +83,7 @@ if errorlevel 1 goto :fail
 "%VENV_PY%" -m pip install -r requirements.txt
 if errorlevel 1 goto :fail
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\launch_client.ps1" -PatchClientCerts %*
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\launch_client.ps1" -PatchClientCerts %TOOLKIT_SWITCH% %*
 set EXITCODE=%ERRORLEVEL%
 
 echo.
