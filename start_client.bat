@@ -19,7 +19,8 @@ if not defined HAS_RIOT_ARG if not defined PROJECT_A_RIOT_ID (
   if not defined PROJECT_A_RIOT_ID set "PROJECT_A_RIOT_ID=DevPlayer#LOCAL"
 )
 
-set "DEFAULT_CLIENT_EXE=%~dp0Project A Valorant\ShooterClient.exe"
+set "DEFAULT_CLIENT_EXE=%~dp0..\Project A Valorant\ShooterClient.exe"
+if not exist "%DEFAULT_CLIENT_EXE%" set "DEFAULT_CLIENT_EXE=%~dp0Project A Valorant\ShooterClient.exe"
 set "TOOLKIT_EXE=%~dp0toolkit\injector.exe"
 if not defined HAS_CLIENT_EXE_ARG if not defined PROJECT_A_CLIENT_EXE (
   set "PROJECT_A_CLIENT_EXE=%DEFAULT_CLIENT_EXE%"
@@ -31,9 +32,6 @@ if not defined HAS_CLIENT_EXE_ARG if not defined PROJECT_A_CLIENT_EXE (
   )
 )
 
-if not defined HAS_TOOLKIT_ARG if not defined PROJECT_A_USE_TOOLKIT if exist "%TOOLKIT_EXE%" (
-  set /p "PROJECT_A_USE_TOOLKIT=Launch with toolkit injected? [y/N]: "
-)
 if not defined PROJECT_A_USE_TOOLKIT set "PROJECT_A_USE_TOOLKIT=0"
 
 set "TOOLKIT_SWITCH="
