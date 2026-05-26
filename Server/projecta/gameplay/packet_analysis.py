@@ -5,6 +5,16 @@ from __future__ import annotations
 from typing import Any
 
 
+def _looks_like_protected_game_packet(data: bytes) -> bool:
+    return (
+        len(data) >= 28
+        and len(data) <= 512
+        and len(data) != 74
+        and data[:8] == b"\x00" * 8
+        and len(data) >= 12
+    )
+
+
 def analyze_udp_packet(data: bytes) -> dict[str, Any]:
     nonzero_offsets = [idx for idx, value in enumerate(data) if value]
     u32le_offsets = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36]
@@ -47,16 +57,14 @@ def analyze_udp_packet(data: bytes) -> dict[str, Any]:
             and u32le.get("32") == 303
         ),
         "project_a_protected_game_packet_candidate": (
-            len(data) in {28, 45}
-            and data[:8] == b"\x00" * 8
-            and len(data) >= 12
+            _looks_like_protected_game_packet(data)
         ),
         "protected_counter_u32_at_8": int.from_bytes(data[8:12], "little") if len(data) >= 12 and data[:8] == b"\x00" * 8 else None,
     }
 
 
 def analyze_protected_game_packet(data: bytes, previous_counter: int | None = None) -> dict[str, Any] | None:
-    if not (len(data) in {28, 45} and len(data) >= 12 and data[:8] == b"\x00" * 8):
+    if not _looks_like_protected_game_packet(data):
         return None
     counter = int.from_bytes(data[8:12], "little")
     payload = data[12:]
@@ -112,6 +120,8 @@ def analyze_client_challenge_response_74(data: bytes) -> dict[str, Any] | None:
         "kind": "project_a_client_challenge_response_74",
         "payload_byte_length": payload_byte_len,
         "u32_at_8": int.from_bytes(data[8:12], "little"),
+        "selector_at_10": int.from_bytes(data[10:12], "little"),
+        "component_payload_12_32_hex": data[12:32].hex(),
         "bit_count_at_32": bit_count_at_32,
         "payload_offset": 36,
         "payload_hex": payload.hex(),

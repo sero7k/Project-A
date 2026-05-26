@@ -65,6 +65,8 @@ def initial_game_state(deps: StateTransitionDependencies, game_host: str, game_p
             {
                 "phase": "core",
                 "party_state": "SOLO_EXPERIENCE_STARTING",
+                "map": SHOOTING_RANGE_MAP,
+                "mode": SHOOTING_RANGE_MODE,
                 "queue": SHOOTING_RANGE_QUEUE,
                 "provisioning_flow": SHOOTING_RANGE_PROVISIONING_FLOW,
                 "active_profile_keys": [],

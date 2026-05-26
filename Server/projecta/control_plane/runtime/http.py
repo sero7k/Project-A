@@ -182,7 +182,7 @@ class ProbeHandler(BaseHTTPRequestHandler):
 
     def _base_url(self) -> str:
         host = self.headers.get("host") or f"127.0.0.1:{self.server.server_address[1]}"
-        return f"https://{host}"
+        return f"http://{host}"
 
     def _config_payload(self) -> dict[str, Any]:
         base = self._base_url()
