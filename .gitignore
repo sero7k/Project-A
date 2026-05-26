@@ -74,6 +74,11 @@ GeneratedSDK/
 !toolkit/*.exe
 !toolkit/*.dll
 
+# Keep only the placeholder for the local game folder in-repo.
+!Project A Valorant/
+Project A Valorant/*
+!Project A Valorant/PUT GAME HERE
+
 # Editor/OS noise
 .vscode/
 .idea/
