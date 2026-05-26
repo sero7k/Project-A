@@ -457,8 +457,58 @@ def ensure_character_selections(
     state_transitions.ensure_character_selections(_state_transition_deps(), game_state, state, profiles)
 
 
+# ---------------------------------------------------------------------------
+# On-demand UE4 game server process management
+# ---------------------------------------------------------------------------
+
+_game_server_process: Any = None
+
+
+def _ensure_game_server_running(game_state: dict[str, Any]) -> None:
+    """Spawn the UE4 game server subprocess if not already running.
+
+    Called when the match phase transitions to 'core'. The server listens on
+    the configured game_host:game_port and handles the Ares handshake + UE4
+    control channel login so the client can load into the level.
+    """
+    import subprocess
+    import sys
+
+    global _game_server_process
+
+    # Already running?
+    if _game_server_process is not None and _game_server_process.poll() is None:
+        return
+
+    host = str(game_state.get("game_host", "127.0.0.1"))
+    port = str(game_state.get("game_port", 7777))
+    map_url = str(game_state.get("map", DEFAULT_MAP))
+    log_dir = Path("reverse-logs")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / f"game_socket_ondemand.jsonl"
+
+    cmd = [
+        sys.executable,
+        "Server/ue_game_server.py",
+        "--host", host,
+        "--port", port,
+        "--log", str(log_file),
+        "--seconds", "3600",
+        "--map", map_url,
+    ]
+    try:
+        _game_server_process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        pass  # Best-effort; client will get timeout if this fails
+
+
 def transition_locked_match_to_core(game_state: dict[str, Any], profiles: list[dict[str, str]]) -> None:
     state_transitions.transition_locked_match_to_core(_state_transition_deps(), game_state, profiles)
+    _ensure_game_server_running(game_state)
 
 def loadout_name_for_equippable(equippable_id: str, fallback_name: str) -> str:
     return loadout_payloads.loadout_name_for_equippable(equippable_id, fallback_name, DEFAULT_LOADOUT_ROWS)

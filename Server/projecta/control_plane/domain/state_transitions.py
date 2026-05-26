@@ -16,6 +16,8 @@ from ..data.catalog import (
     LOCAL_MODE_ROWS,
     DEFAULT_QUEUE,
     MATCHMAKING_PROVISIONING_FLOW,
+    SHOOTING_RANGE_MAP,
+    SHOOTING_RANGE_MODE,
     SHOOTING_RANGE_PROVISIONING_FLOW,
     SHOOTING_RANGE_QUEUE,
 )
@@ -330,9 +332,9 @@ def normalize_map_value(value: str) -> str:
             "duality": "/Game/Maps/Duality/Duality",
             "haven": "/Game/Maps/Triad/Triad",
             "triad": "/Game/Maps/Triad/Triad",
-            "range": DEFAULT_MAP,
-            "shootingrange": DEFAULT_MAP,
-            "shooting range": DEFAULT_MAP,
+            "range": SHOOTING_RANGE_MAP,
+            "shootingrange": SHOOTING_RANGE_MAP,
+            "shooting range": SHOOTING_RANGE_MAP,
             "poveglia": "/Game/Maps/Poveglia/Poveglia",
         },
     )
@@ -347,9 +349,9 @@ def normalize_mode_value(value: str) -> str:
             "standard": "/Game/GameModes/Bomb/BombGameMode.BombGameMode_C",
             "quickplay": "/Game/GameModes/Bomb/QuickPlay_BombGameMode.QuickPlay_BombGameMode_C",
             "quick play": "/Game/GameModes/Bomb/QuickPlay_BombGameMode.QuickPlay_BombGameMode_C",
-            "shootingrange": DEFAULT_MODE,
-            "shooting range": DEFAULT_MODE,
-            "range": DEFAULT_MODE,
+            "shootingrange": SHOOTING_RANGE_MODE,
+            "shooting range": SHOOTING_RANGE_MODE,
+            "range": SHOOTING_RANGE_MODE,
         },
     )
 
@@ -442,14 +444,14 @@ def configure_solo_experience(game_state: dict[str, Any], body: dict[str, Any]) 
     normalized = game_type.replace("_", "").replace("-", "").replace(" ", "").lower()
     if not game_type or normalized in {"shootingrange", "range"}:
         game_type = SHOOTING_RANGE_PROVISIONING_FLOW
-        game_state["map"] = DEFAULT_MAP
-        game_state["mode"] = DEFAULT_MODE
+        game_state["map"] = SHOOTING_RANGE_MAP
+        game_state["mode"] = SHOOTING_RANGE_MODE
         game_state["queue"] = SHOOTING_RANGE_QUEUE
         game_state["provisioning_flow"] = SHOOTING_RANGE_PROVISIONING_FLOW
     elif normalized in {"newplayerexperience", "npe"}:
         game_type = "NewPlayerExperience"
-        game_state["map"] = DEFAULT_MAP
-        game_state["mode"] = DEFAULT_MODE
+        game_state["map"] = SHOOTING_RANGE_MAP
+        game_state["mode"] = SHOOTING_RANGE_MODE
         game_state["queue"] = SHOOTING_RANGE_QUEUE
         game_state["provisioning_flow"] = game_type
     else:

@@ -30,20 +30,37 @@ if not defined HAS_CLIENT_EXE_ARG if not defined PROJECT_A_CLIENT_EXE (
 set "PYTHON_CMD=python"
 where py >nul 2>nul
 if not errorlevel 1 set "PYTHON_CMD=py -3"
+set "VENV_DIR=.venv"
+set "VENV_PY=%VENV_DIR%\Scripts\python.exe"
 
-if not exist ".venv\Scripts\python.exe" (
-  echo Creating .venv...
-  %PYTHON_CMD% -m venv .venv
+if exist "%VENV_DIR%" if not exist "%VENV_DIR%\pyvenv.cfg" (
+  echo Recreating incomplete %VENV_DIR%...
+  rmdir /s /q "%VENV_DIR%" 2>nul
+)
+
+if not exist "%VENV_PY%" (
+  echo Creating %VENV_DIR%...
+  %PYTHON_CMD% -m venv "%VENV_DIR%"
   if errorlevel 1 goto :fail
 )
 
-call ".venv\Scripts\activate.bat"
+if not exist "%VENV_PY%" goto :fail
+
+"%VENV_PY%" -m ensurepip --upgrade >nul 2>nul
+if errorlevel 1 (
+  echo Repairing %VENV_DIR%...
+  rmdir /s /q "%VENV_DIR%" 2>nul
+  %PYTHON_CMD% -m venv "%VENV_DIR%"
+  if errorlevel 1 goto :fail
+  if not exist "%VENV_PY%" goto :fail
+  "%VENV_PY%" -m ensurepip --upgrade >nul 2>nul
+)
 if errorlevel 1 goto :fail
 
 echo Installing/updating dependencies...
-python -m pip install --upgrade pip
+"%VENV_PY%" -m pip install --upgrade pip
 if errorlevel 1 goto :fail
-python -m pip install -r requirements.txt
+"%VENV_PY%" -m pip install -r requirements.txt
 if errorlevel 1 goto :fail
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\launch_client.ps1" -PatchClientCerts %*
@@ -51,11 +68,11 @@ set EXITCODE=%ERRORLEVEL%
 
 echo.
 echo start_client.bat exited with code %EXITCODE%.
-pause
+if not defined PROJECT_A_NO_PAUSE pause
 exit /b %EXITCODE%
 
 :fail
 echo.
 echo start_client.bat failed.
-pause
+if not defined PROJECT_A_NO_PAUSE pause
 exit /b 1

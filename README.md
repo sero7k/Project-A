@@ -57,6 +57,8 @@ Start only the local server:
 start_server.bat
 ```
 
+For scripted runs that should not pause at the end, set `PROJECT_A_NO_PAUSE=1` before calling either batch file.
+
 This creates `.venv`, installs dependencies from `requirements.txt`, and starts the local control-plane server on:
 
 ```text
@@ -94,6 +96,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\launch_client.ps1 
 ```
 
 ## Manual Server Start
+
+Check launcher options:
+
+```powershell
+.\start_server.bat --help
+```
+
+Or, if you prefer to manage Python yourself:
 
 ```powershell
 python -m venv .venv
@@ -196,7 +206,7 @@ PROJECT_A_ALLOW_UNVERIFIED_DEFAULT_LOADOUT=0
 
 `.gitignore` and `.dockerignore` exclude generated and local-only artifacts, including:
 
-- `.venv/`, `__pycache__/`, `.pytest_cache/`, coverage and build output.
+- `.venv*/`, `__pycache__/`, `.pytest_cache/`, coverage and build output.
 - `reverse-logs/`, `*.log`, `*.jsonl`, generated `*.crt`, `*.key`, and `*.pem` files.
 - `Project A Valorant/`, `DUMP/`, generated SDK output, IDA databases, executables, DLLs, PAK files, dumps, and certificate backups.
 

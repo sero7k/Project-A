@@ -12,8 +12,10 @@ try:
 except ImportError:
     from projecta.storage.accounts import generated_subject
 
-DEFAULT_MAP = "/Game/Maps/Poveglia/Range"
-DEFAULT_MODE = "/Game/GameModes/ShootingRange/ShootingRangeGameMode.ShootingRangeGameMode_C"
+DEFAULT_MAP = "/Game/Maps/Ascent/Ascent"
+DEFAULT_MODE = "/Game/GameModes/Bomb/BombGameMode.BombGameMode_C"
+SHOOTING_RANGE_MAP = "/Game/Maps/Poveglia/Range"
+SHOOTING_RANGE_MODE = "/Game/GameModes/ShootingRange/ShootingRangeGameMode.ShootingRangeGameMode_C"
 DEFAULT_QUEUE = "custom"
 DEFAULT_MATCHMAKING_QUEUE = "v"
 SHOOTING_RANGE_QUEUE = "ShootingRange"
@@ -162,7 +164,7 @@ LOCAL_MODE_ROWS = [
     {
         "id": "4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38",
         "name": "Shooting Range",
-        "path": DEFAULT_MODE,
+        "path": SHOOTING_RANGE_MODE,
         "asset": DEFAULT_MODE_ASSET,
         "ui_data": "/Game/GameModes/ShootingRange/ShootingRangeGameMode_UIData",
     },

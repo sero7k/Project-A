@@ -54,6 +54,8 @@ def main() -> int:
         default="none",
     )
     parser.add_argument("--udp-reply-hex", default="")
+    parser.add_argument("--map", default="/Game/Maps/Ascent/Ascent", help="UE4 map URL sent in the Welcome message after handshake completes.")
+    parser.add_argument("--game-mode", default="/Script/ShooterGame.ShooterGameMode", help="UE4 GameMode class path for the Welcome message.")
     parser.add_argument("--stateless-sequence", default="")
     parser.add_argument(
         "--handshake-final-sequence",
@@ -91,11 +93,15 @@ def main() -> int:
             "udp_reply_hex": reply_bytes.hex(),
             "stateless_sequence": stateless_sequence,
             "handshake_final_sequence": handshake_final_sequence,
+            "map": args.map,
+            "game_mode": args.game_mode,
         },
     )
 
+    game_state = {"map": args.map, "game_mode": args.game_mode, "game_host": args.host, "game_port": args.port}
+
     threads = [
-        threading.Thread(target=udp_observer, args=(args.host, args.port, args.log, lock, stop, args.udp_reply, reply_bytes, stateless_sequence, handshake_final_sequence), daemon=True),
+        threading.Thread(target=udp_observer, args=(args.host, args.port, args.log, lock, stop, args.udp_reply, reply_bytes, stateless_sequence, handshake_final_sequence, game_state), daemon=True),
         threading.Thread(target=tcp_observer, args=(args.host, args.port, args.log, lock, stop), daemon=True),
     ]
     for thread in threads:
