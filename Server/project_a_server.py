@@ -65,13 +65,33 @@ MATCH_ID = "33333333-3333-3333-3333-333333333333"
 GAME_POD_ID = "local-gamepod"
 DEFAULT_MAP = "/Game/Maps/Poveglia/Range"
 DEFAULT_MODE = "/Game/GameModes/ShootingRange/ShootingRangeGameMode.ShootingRangeGameMode_C"
+LOCAL_RANGE_TRAVEL_URL = (
+    "/Game/Maps/Poveglia/Range"
+    "?game=/Game/GameModes/ShootingRange/ShootingRangeGameMode.ShootingRangeGameMode_C"
+    "?listen"
+    "?NumPlayers=1"
+    "?MaxPlayers=1"
+    "?numplay=1"
+)
+LOCAL_RANGE_GAME_HOST = "127.0.0.1"
+LOCAL_RANGE_GAME_PORT = 7777
+PREGAME_CHARACTER_SELECT_SECONDS = 36
 DEFAULT_QUEUE = "custom"
 SHOOTING_RANGE_QUEUE = "ShootingRange"
 DEFAULT_PROVISIONING_FLOW = "CustomGame"
 SHOOTING_RANGE_PROVISIONING_FLOW = "ShootingRange"
-DEFAULT_CHARACTER_ID = "44444444-4444-4444-4444-444444444444"
+API_DRIVEN_SOLO_RANGE = True
+PROVISIONING_FLOW_IDS = {
+    "ShootingRange": 1,
+    "SkillTest": 2,
+    "CustomGame": 3,
+    "Matchmaking": 4,
+    "NewPlayerExperience": 5,
+}
+DEFAULT_CHARACTER_ID = "eb93336a-449b-9c1b-0a54-a891f7921d69"
 DEFAULT_PLAYER_CARD_ID = "8cf33945-4a2a-1da8-02de-a6858a04f07d"
 DEFAULT_PLAYER_TITLE_ID = "e59aa87c-4cbf-517a-5983-6e81511be9b7"
+DEFAULT_LEVEL_BORDER_ID = "0d1a6e0a-4393-4c5a-8a3b-7e2f1a3c5d6e"
 DEFAULT_PLAYER_CARD_ASSET = blueprint_asset("/Game/Personalization/PlayerCards/Default/EtherExplosion/PlayerCard_EtherExplosion_PrimaryAsset")
 DEFAULT_PLAYER_TITLE_ASSET = blueprint_asset("/Game/Personalization/Titles/PlayerTitle_Default_PrimaryAsset")
 DEFAULT_SPRAY_PREROUND_ID = "35138b9a-5d96-4fbd-8e2d-a2440225f93a"
@@ -112,26 +132,27 @@ ITEM_TYPE_SPRAY_LEVEL = "d5f120f8-ff8c-4aac-92ea-f2b5acbe9475"
 ITEM_TYPE_PLAYER_CARD = "bcef87d6-209b-46c6-8b19-fbe40bd95abc"
 ITEM_TYPE_PLAYER_TITLE = "de7caa6b-adf7-4588-bbd1-143831e786c6"
 
+CHARACTER_CONTENT = [
+    ("Phoenix", "Phoenix", "eb93336a-449b-9c1b-0a54-a891f7921d69"),
+    ("Jett", "Wushu", "add6443a-41bd-e414-f6ad-e58d267f4e95"),
+    ("Viper", "Pandemic", "707eab51-4836-f488-046a-cda6bf494859"),
+    ("Breach", "Breach", "5f8d3a7f-467b-97f3-062c-13acf203c006"),
+    ("Sova", "Hunter", "320b2a48-4d9b-a075-30f1-1f93a9b638fa"),
+    ("Sage", "Thorne", "569fdd95-4d10-43ab-ca70-79becc718b46"),
+    ("Cypher", "Gumshoe", "117ed9e3-49f3-6512-3ccf-0cada7e3823b"),
+    ("Omen", "Wraith", "8e253930-4c05-31dd-1b6c-968525494517"),
+    ("Brimstone", "Sarge", "9f0d8ba9-4140-b941-57d3-a7ad57c6b417"),
+]
+
 
 DEFAULT_LOADOUT_ROWS = [
-    ("Odin", "63e6c2b6-4a8e-869c-3d4c-e38355226584", "f454efd1-49cb-372f-7096-d394df615308", "d91fb318-4e40-b4c9-8c0b-bb9da28bac55", "2f93861d-4b2f-2175-af0c-3ba0c736e257"),
-    ("Ares", "55d8a0f4-4274-ca67-fe2c-06ab45efdf58", "5305d9c4-4f46-fbf4-9e9a-dea772c263b5", "0f5f60f4-4c94-e4b2-ceab-e2b4e8b41784", "b33de820-4061-8b85-31ce-808f1a2c58f5"),
-    ("Vandal", "9c82e19d-4575-0200-1a81-3eacf00cf872", "27f21d97-4c4b-bd1c-1f08-31830ab0be84", "1ab72e66-4da3-33a0-164f-908113e075a4", "19629ae1-4996-ae98-7742-24a240d41f99"),
-    ("Bulldog", "ae3de142-4d85-2547-dd26-4e90bed35cf7", "724a7f42-4315-eccf-0e76-77bdd3ec2e09", "c8e6ac70-48ef-9d96-d964-a88e8890b885", "bf35f404-4a14-6953-ced2-5bafd21639a0"),
-    ("Phantom", "ee8e8d15-496b-07ac-e5f6-8fae5d4c7b1a", "337cb216-4a6e-d85d-88c2-f29ab317784c", "871e73ed-452d-eb5a-3d6b-1d87060f35ce", "52221ba2-4e4c-ec76-8c81-3483506d5242"),
-    ("Judge", "ec845bf4-4f79-ddda-a3da-0db3774b2794", "acd26127-48ff-8b9e-7ba6-b989af8a4b24", "6942d8d1-4370-a144-2140-22a6d2be2697", "b71ae8d6-44bb-aa4c-0d2a-dc9ed9e66410"),
-    ("Bucky", "910be174-449b-c412-ab22-d0873436b21b", "70c97fb2-4d79-d4bb-5173-a1888cd4bfd9", "2f5078c7-4381-492d-cc00-9f96966ba1ec", "3d8ffcfe-4786-0180-42d7-e1be18dd1cab"),
-    ("Frenzy", "44d4e95c-4157-0037-81b2-17841bf2e8e3", "f06657f3-48b6-6314-7235-a9a2749df5b9", "80fabd74-4438-a2dd-0c39-42ab449f9ec6", "dc99ed5a-4d75-87a0-c921-75963ea3c1e1"),
-    ("Classic", "29a0cfab-485b-f5d5-779a-b59f85e204a8", "24aee897-4cdc-b0fd-e596-1ba90fa6d1b2", "51cbccad-487c-50ed-2ffd-c88b4240fab3", "4b2d5b4f-4955-4208-286c-abadec250cdd"),
-    ("Ghost", "1baa85b4-4c70-1284-64bb-6481dfc3bb4e", "1c63b43b-43c4-04e4-01c9-7aa1bffa5ac1", "0a7e786c-444e-6a80-8bda-e2b714d68332", "947a28b6-4e0f-61fb-e795-bc9a5e7b7129"),
-    ("Sheriff", "e336c6b8-418d-9340-d77f-7a9e4cfe0702", "1ef6ba68-4dbe-30c7-6bc8-93a6c6f13f04", "feaf05a1-492f-d154-a9f5-0eb1fe9a603e", "5a59bd61-48a9-af61-c00f-4aa21deca9a8"),
-    ("Shorty", "42da8ccc-40d5-affc-beec-15aa47b42eda", "48ad078a-4dae-2b85-a945-f4b6d1efecbb", "a7f92a1c-4465-5ea3-7745-bd876117f4a7", "95608504-4c8b-1408-1612-0f8200421c49"),
-    ("Operator", "a03b24d3-4319-996d-0f8c-94bbfba1dfc7", "d1f2920f-469a-3431-ad96-96afbd0017f2", "88cba358-4f4d-4d0e-69fc-b48f4c65cb2d", "4914f50d-49f9-6424-ca80-9486c45a138d"),
-    ("Guardian", "4ade7faa-4cf1-8376-95ef-39884480959b", "3bf1e8e0-47e8-f27a-6054-929575f41a54", "414d888a-41ce-fcf0-e545-c49018ec9cf4", "0f934388-418a-a9e7-42a7-21b27402e46c"),
-    ("Marshal", "c4883e50-4494-202c-3ec3-6b8a9284f00b", "fd44b2d5-49ee-77ab-fa56-588f3ac0c268", "f0389390-49eb-a43e-27fa-fc9f9f8aa9de", "1afec971-4170-f29b-1c94-07a0eff270ab"),
-    ("Spectre", "462080d1-4035-2937-7c09-27aa2a5c27a7", "f01d1307-4299-42f5-2c5e-7dab7e69ab19", "1dc45e18-4a07-c85f-0020-6da4db1486ce", "a9aaccca-4cdc-02ea-1d7e-89bbacecc0e2"),
-    ("Stinger", "f7e1b454-4ad4-1063-ec0a-159e56b58941", "940fb417-4a9c-3004-41f5-3e8f1f4178b2", "471fc2a5-47a7-5b12-2895-0899117d2f57", "31bb2115-4c62-d37c-43c4-11b8fee7f212"),
-    ("Melee", "2f59173c-4bed-b6c3-2191-dea9b58be9c7", "12cc9ed2-4430-d2fe-3064-f7a19b1ba7c7", "854938f3-4532-b300-d9a2-379d987d7469", "cac83e5c-47a1-3519-5420-1db1fdbc4892"),
+    # Using retail Valorant UUIDs — these map to default skins which should exist in alpha.
+    ("Classic", "29a0cfab-485b-f5d5-779a-b59f85e204a8", "29a0cfab-485b-f5d5-779a-b59f85e204a8", "29a0cfab-485b-f5d5-779a-b59f85e204a8", "29a0cfab-485b-f5d5-779a-b59f85e204a8"),
+    ("Vandal", "9c82e19d-4575-0200-1a81-3eacf00cf872", "9c82e19d-4575-0200-1a81-3eacf00cf872", "9c82e19d-4575-0200-1a81-3eacf00cf872", "9c82e19d-4575-0200-1a81-3eacf00cf872"),
+    ("Phantom", "ee8e8d15-496b-07ac-e5f6-8fae5d4c7b1a", "ee8e8d15-496b-07ac-e5f6-8fae5d4c7b1a", "ee8e8d15-496b-07ac-e5f6-8fae5d4c7b1a", "ee8e8d15-496b-07ac-e5f6-8fae5d4c7b1a"),
+    ("Operator", "a03b24d3-4319-996d-0f8c-94bbfba1dfc7", "a03b24d3-4319-996d-0f8c-94bbfba1dfc7", "a03b24d3-4319-996d-0f8c-94bbfba1dfc7", "a03b24d3-4319-996d-0f8c-94bbfba1dfc7"),
+    ("Spectre", "462080d1-4035-2937-7c09-27aa2a5c27a7", "462080d1-4035-2937-7c09-27aa2a5c27a7", "462080d1-4035-2937-7c09-27aa2a5c27a7", "462080d1-4035-2937-7c09-27aa2a5c27a7"),
+    ("Melee", "2f59173c-4bed-b6c3-2191-dea9b58be9c7", "2f59173c-4bed-b6c3-2191-dea9b58be9c7", "2f59173c-4bed-b6c3-2191-dea9b58be9c7", "2f59173c-4bed-b6c3-2191-dea9b58be9c7"),
 ]
 
 
@@ -494,23 +515,79 @@ def initial_game_state(game_host: str, game_port: int, phase: str) -> dict[str, 
             {
                 "phase": "core",
                 "party_state": "SOLO_EXPERIENCE_STARTING",
+                "pregame_state": "provisioned",
                 "queue": SHOOTING_RANGE_QUEUE,
                 "provisioning_flow": SHOOTING_RANGE_PROVISIONING_FLOW,
                 "active_profile_keys": [],
                 "character_id": DEFAULT_CHARACTER_ID,
-                "character_selection_state": "locked",
+                "character_selection_state": "selected",
                 "character_id_by_subject": {PLAYER_UUID: DEFAULT_CHARACTER_ID},
-                "character_selection_state_by_subject": {PLAYER_UUID: "locked"},
+                "character_selection_state_by_subject": {PLAYER_UUID: "selected"},
                 "solo_experience_type": SHOOTING_RANGE_PROVISIONING_FLOW,
                 "practice_seed": True,
+                "solo_api_core": True,
+                "game_host": "",
+                "game_port": 0,
             }
         )
+    return state
+
+
+def initial_multiplayer_host_state(
+    map_id: str = DEFAULT_MAP,
+    mode_id: str = DEFAULT_MODE,
+    num_players: int = 2,
+    profile_key: str = "developer",
+) -> dict[str, Any]:
+    travel_url = (
+        f"{map_id}"
+        f"?game={mode_id}"
+        f"?listen"
+        f"?NumPlayers={num_players}"
+        f"?MaxPlayers={num_players}"
+        f"?numplay={num_players}"
+    )
+    state = initial_game_state(travel_url, 0, "menus")
+    state["party_state"] = "DEFAULT"
+    state["pregame_state"] = ""
+    state["manual_listen_host"] = True
+    state["map"] = map_id
+    state["mode"] = mode_id
+    state["queue"] = DEFAULT_QUEUE
+    state["provisioning_flow"] = DEFAULT_PROVISIONING_FLOW
+    state["active_profile_keys"] = [profile_key]
+    profile = profile_by_key(profile_key)
+    set_character_for_profile(state, profile, DEFAULT_CHARACTER_ID, "locked")
+    return state
+
+
+def initial_multiplayer_client_state(
+    server_host: str,
+    server_port: int,
+    map_id: str = DEFAULT_MAP,
+    mode_id: str = DEFAULT_MODE,
+    profile_key: str = "developer",
+) -> dict[str, Any]:
+    state = initial_game_state(server_host, server_port, "core")
+    state["party_state"] = "MATCHMADE_GAME_STARTING"
+    state["pregame_state"] = "provisioned"
+    state["map"] = map_id
+    state["mode"] = mode_id
+    state["queue"] = DEFAULT_QUEUE
+    state["provisioning_flow"] = DEFAULT_PROVISIONING_FLOW
+    state["active_profile_keys"] = [profile_key]
+    profile = profile_by_key(profile_key)
+    set_character_for_profile(state, profile, DEFAULT_CHARACTER_ID, "locked")
     return state
 
 
 def loop_state(game_state: dict[str, Any] | None = None) -> str:
     if not game_state:
         return "MENUS"
+    if game_state.get("solo_api_core") and game_state.get("phase") == "core":
+        return "INGAME"
+    if is_solo_local_experience(game_state):
+        return "PREGAME"
     if game_state.get("phase") == "pregame":
         return "PREGAME"
     if game_state.get("phase") == "core":
@@ -522,6 +599,9 @@ def active_party_state(game_state: dict[str, Any] | None = None) -> str:
     if not game_state:
         return "DEFAULT"
     if game_state.get("phase") == "pregame":
+        explicit_state = str(game_state.get("party_state") or "")
+        if explicit_state == "SOLO_EXPERIENCE_STARTING":
+            return explicit_state
         return "CUSTOM_GAME_STARTING"
     if game_state.get("phase") == "core":
         explicit_state = str(game_state.get("party_state") or "")
@@ -532,6 +612,10 @@ def active_party_state(game_state: dict[str, Any] | None = None) -> str:
 
 
 def active_match_id(game_state: dict[str, Any] | None = None) -> str:
+    if game_state and game_state.get("solo_api_core") and game_state.get("phase") == "core":
+        return MATCH_ID
+    if is_solo_local_travel_pending(game_state):
+        return ""
     if game_state and game_state.get("phase") in {"pregame", "core"}:
         return MATCH_ID
     return ""
@@ -565,6 +649,14 @@ def normalize_custom_team(team: str | None) -> str:
 
 
 def team_id_for_custom_team(team: str) -> str:
+    if team == "TeamTwo":
+        return "TeamTwo"
+    if team == "TeamSpectate":
+        return "Spectate"
+    return "TeamOne"
+
+
+def engine_team_id_for_custom_team(team: str) -> str:
     if team == "TeamTwo":
         return "Red"
     if team == "TeamSpectate":
@@ -620,6 +712,19 @@ def character_for_profile(game_state: dict[str, Any], profile: dict[str, str], d
     return default
 
 
+def character_content_for_id(character_id: str) -> tuple[str, str, str] | None:
+    normalized = str(character_id or "").lower()
+    for display_name, dev_name, content_id in CHARACTER_CONTENT:
+        if content_id.lower() == normalized:
+            return display_name, dev_name, content_id
+    return None
+
+
+def character_dev_name_for_id(character_id: str) -> str:
+    content = character_content_for_id(character_id)
+    return content[1] if content else str(character_id or "")
+
+
 def character_state_for_profile(game_state: dict[str, Any], profile: dict[str, str]) -> str:
     by_subject = game_state.get("character_selection_state_by_subject")
     if isinstance(by_subject, dict):
@@ -649,6 +754,120 @@ def ensure_character_selections(
     for profile in profiles or profiles_from_game_state(game_state):
         character_id = character_for_profile(game_state, profile, DEFAULT_CHARACTER_ID)
         set_character_for_profile(game_state, profile, character_id, state)
+
+
+def should_auto_start_after_lock(game_state: dict[str, Any]) -> bool:
+    flow = active_provisioning_flow(game_state)
+    queue = str(game_state.get("queue") or "")
+    solo_type = str(game_state.get("solo_experience_type") or "")
+    party_state = str(game_state.get("party_state") or "")
+    return (
+        flow == SHOOTING_RANGE_PROVISIONING_FLOW
+        or queue == SHOOTING_RANGE_QUEUE
+        or solo_type == SHOOTING_RANGE_PROVISIONING_FLOW
+        or party_state == "CUSTOM_GAME_STARTING"
+    )
+
+
+def is_solo_local_experience(game_state: dict[str, Any] | None) -> bool:
+    if not game_state:
+        return False
+    flow = active_provisioning_flow(game_state)
+    queue = str(game_state.get("queue") or "")
+    solo_type = str(game_state.get("solo_experience_type") or "")
+    return (
+        str(game_state.get("party_state") or "") == "SOLO_EXPERIENCE_STARTING"
+        or flow in {SHOOTING_RANGE_PROVISIONING_FLOW, "NewPlayerExperience"}
+        or queue == SHOOTING_RANGE_QUEUE
+        or solo_type in {SHOOTING_RANGE_PROVISIONING_FLOW, "NewPlayerExperience"}
+    )
+
+
+def is_solo_local_travel_pending(game_state: dict[str, Any] | None) -> bool:
+    return bool(
+        game_state
+        and not game_state.get("solo_api_core")
+        and game_state.get("phase") == "pregame"
+        and game_state.get("pregame_state") == "provisioned"
+        and is_solo_local_experience(game_state)
+    )
+
+
+def is_api_driven_solo_range(game_state: dict[str, Any] | None) -> bool:
+    return bool(
+        API_DRIVEN_SOLO_RANGE
+        and game_state
+        and game_state.get("solo_api_core")
+        and is_solo_local_experience(game_state)
+    )
+
+
+def promote_solo_range_to_api_core(game_state: dict[str, Any], profile: dict[str, str] | None = None) -> None:
+    game_state["phase"] = "core"
+    game_state["party_state"] = "SOLO_EXPERIENCE_STARTING"
+    game_state["pregame_state"] = "provisioned"
+    game_state["solo_api_core"] = True
+    game_state["game_host"] = LOCAL_RANGE_GAME_HOST
+    game_state["game_port"] = LOCAL_RANGE_GAME_PORT
+    profile = profile or default_profile()
+
+
+def promote_custom_game_to_core(game_state: dict[str, Any], profile: dict[str, str] | None = None) -> None:
+    game_state["phase"] = "core"
+    game_state["party_state"] = "CUSTOM_GAME_STARTING"
+    game_state["pregame_state"] = "provisioned"
+    game_state["solo_api_core"] = False
+    map_id = game_state.get("map", DEFAULT_MAP)
+    mode_id = game_state.get("mode", DEFAULT_MODE)
+    num_players = len(party_profiles(game_state, party_id_for_profile(profile), profile))
+    max_players = max(num_players, 1)
+    game_state["game_host"] = (
+        f"{map_id}"
+        f"?game={mode_id}"
+        f"?listen"
+        f"?NumPlayers={num_players}"
+        f"?MaxPlayers={max_players}"
+        f"?numplay={num_players}"
+    )
+    game_state["game_port"] = 0
+    profile = profile or default_profile()
+    ensure_character_selections(game_state, "locked", party_profiles(game_state, party_id_for_profile(profile), profile))
+
+
+def start_solo_range_pregame(game_state: dict[str, Any], profile: dict[str, str] | None = None) -> None:
+    game_state["phase"] = "pregame"
+    game_state["party_state"] = "SOLO_EXPERIENCE_STARTING"
+    game_state["pregame_state"] = "character_select_active"
+    game_state["solo_api_core"] = True
+    game_state["game_host"] = ""
+    game_state["game_port"] = 0
+    game_state["pregame_phase_started_at"] = time.time()
+    profile = profile or default_profile()
+    ensure_character_selections(game_state, "selected", party_profiles(game_state, party_id_for_profile(profile), profile))
+
+
+def provision_solo_range_pregame(game_state: dict[str, Any], profile: dict[str, str] | None = None) -> None:
+    game_state["phase"] = "pregame"
+    game_state["party_state"] = "SOLO_EXPERIENCE_STARTING"
+    game_state["pregame_state"] = "provisioned"
+    game_state["solo_api_core"] = False
+    game_state["game_host"] = ""
+    game_state["game_port"] = 0
+    profile = profile or default_profile()
+    ensure_character_selections(game_state, "locked", party_profiles(game_state, party_id_for_profile(profile), profile))
+
+
+def pregame_phase_time_remaining_ns(game_state: dict[str, Any], pregame_state: str) -> int:
+    if game_state.get("phase") == "core" or pregame_state == "provisioned":
+        return 90_000_000_000
+    started_at = float(game_state.get("pregame_phase_started_at") or time.time())
+    elapsed = max(0.0, time.time() - started_at)
+    remaining = max(1.0, PREGAME_CHARACTER_SELECT_SECONDS - elapsed)
+    return int(remaining * 1_000_000_000)
+
+
+def provisioning_flow_id(flow: str | None) -> int:
+    return PROVISIONING_FLOW_IDS.get(str(flow or ""), 0)
 
 
 def update_state_from_json(game_state: dict[str, Any], body: dict[str, Any]) -> None:
@@ -712,6 +931,8 @@ def configure_solo_experience(game_state: dict[str, Any], body: dict[str, Any]) 
         game_state["mode"] = DEFAULT_MODE
         game_state["queue"] = SHOOTING_RANGE_QUEUE
         game_state["provisioning_flow"] = SHOOTING_RANGE_PROVISIONING_FLOW
+        game_state["game_host"] = ""
+        game_state["game_port"] = 0
     elif normalized in {"newplayerexperience", "npe"}:
         game_type = "NewPlayerExperience"
         game_state["map"] = DEFAULT_MAP
@@ -903,6 +1124,7 @@ def presence_private_payload(game_state: dict[str, Any] | None = None, profile: 
     custom_team = custom_team_for_profile(game_state, profile)
     team_id = team_id_for_custom_team(custom_team)
     provisioning_flow = active_provisioning_flow(game_state)
+    provisioning_flow_value = provisioning_flow_id(provisioning_flow) if state != "DEFAULT" else 0
     owner_subject = profiles[0]["subject"] if profiles else profile["subject"]
     return {
         "isValid": True,
@@ -914,8 +1136,8 @@ def presence_private_payload(game_state: dict[str, Any] | None = None, profile: 
         "partyOwnerMatchCurrentTeam": team_id if state != "DEFAULT" else "",
         "partyOwnerMatchScoreAllyTeam": 0,
         "partyOwnerMatchScoreEnemyTeam": 0,
-        "partyOwnerProvisioningFlow": provisioning_flow if state != "DEFAULT" else "Invalid",
-        "provisioningFlow": provisioning_flow if state != "DEFAULT" else "Invalid",
+        "partyOwnerProvisioningFlow": provisioning_flow_value,
+        "provisioningFlow": provisioning_flow_value,
         "matchMap": (game_state or {}).get("map", ""),
         "partyId": current_party_id,
         "isPartyOwner": profile["subject"] == owner_subject,
@@ -1037,7 +1259,12 @@ def session_payload(game_state: dict[str, Any] | None = None, profile: dict[str,
     profile = profile or default_profile()
     current_loop_state = loop_state(game_state)
     match_id = active_match_id(game_state)
-    if game_state and game_state.get("phase") == "pregame" and game_state.get("pregame_state") == "provisioned":
+    if (
+        game_state
+        and game_state.get("phase") == "pregame"
+        and game_state.get("pregame_state") == "provisioned"
+        and not is_solo_local_experience(game_state)
+    ):
         current_loop_state = "INGAME"
     client_id = f"rnet-probe-{profile['key']}"
     session_id = f"local-session-{profile['key']}"
@@ -1120,13 +1347,22 @@ def player_identity_payload(profile: dict[str, str] | None = None) -> dict[str, 
         "playerTitleID": DEFAULT_PLAYER_TITLE_ID,
         "playerTitleId": DEFAULT_PLAYER_TITLE_ID,
         "AccountLevel": 1,
-        "PreferredLevelBorderID": ZERO_UUID,
-        "preferredLevelBorderID": ZERO_UUID,
-        "preferredLevelBorderId": ZERO_UUID,
+        "PreferredLevelBorderID": DEFAULT_LEVEL_BORDER_ID,
+        "preferredLevelBorderID": DEFAULT_LEVEL_BORDER_ID,
+        "preferredLevelBorderId": DEFAULT_LEVEL_BORDER_ID,
         "Incognito": False,
         "incognito": False,
         "HideAccountLevel": False,
         "hideAccountLevel": False,
+    }
+
+
+def core_player_identity_payload(profile: dict[str, str] | None = None) -> dict[str, Any]:
+    profile = profile or default_profile()
+    return {
+        "Subject": profile["subject"],
+        "PlayerCardID": DEFAULT_PLAYER_CARD_ID,
+        "PlayerTitleID": DEFAULT_PLAYER_TITLE_ID,
     }
 
 
@@ -1227,6 +1463,7 @@ def party_payload(
     mode_id = (game_state or {}).get("mode", DEFAULT_MODE)
     queue_id = (game_state or {}).get("queue", "")
     provisioning_flow = active_provisioning_flow(game_state)
+    provisioning_flow_value = provisioning_flow_id(provisioning_flow)
     party_state = active_party_state(game_state)
     is_solo_range = queue_id == SHOOTING_RANGE_QUEUE or provisioning_flow in {SHOOTING_RANGE_PROVISIONING_FLOW, "NewPlayerExperience"}
     max_party_size = 1 if is_solo_range else 10
@@ -1296,10 +1533,10 @@ def party_payload(
                 "queueId": queue_id,
                 "ProvisioningFlow": provisioning_flow,
                 "provisioningFlow": provisioning_flow,
-                "ProvisioningFlowID": provisioning_flow,
-                "provisioningFlowID": provisioning_flow,
-                "ProvisioningFlowId": provisioning_flow,
-                "provisioningFlowId": provisioning_flow,
+                "ProvisioningFlowID": provisioning_flow_value,
+                "provisioningFlowID": provisioning_flow_value,
+                "ProvisioningFlowId": provisioning_flow_value,
+                "provisioningFlowId": provisioning_flow_value,
                 "UseBots": False,
                 "GamePod": GAME_POD_ID if party_state != "DEFAULT" else "",
                 "GamePodID": GAME_POD_ID if party_state != "DEFAULT" else "",
@@ -1410,7 +1647,7 @@ def inactive_match_player_payload(profile: dict[str, str] | None = None) -> dict
     return {
         "Subject": profile["subject"],
         "MatchID": "",
-        "Version": 0,
+        "Version": 1,
     }
 
 
@@ -1418,23 +1655,23 @@ def inactive_match_payload() -> dict[str, Any]:
     return {
         "ID": "",
         "MatchID": "",
-        "Version": 0,
+        "Version": 1,
         "Teams": [],
         "AllyTeam": None,
         "EnemyTeam": None,
         "ObserverSubjects": [],
         "MatchCoaches": [],
         "PregameState": "",
-        "MapID": "",
-        "Map": "",
-        "MapUrl": "",
-        "MapURL": "",
-        "Mode": "",
-        "ModeID": "",
-        "GameMode": "",
-        "GameModeID": "",
-        "QueueID": "",
-        "ProvisioningFlow": "Invalid",
+        "MapID": DEFAULT_MAP,
+        "Map": DEFAULT_MAP,
+        "MapUrl": DEFAULT_MAP,
+        "MapURL": DEFAULT_MAP,
+        "Mode": DEFAULT_MODE,
+        "ModeID": DEFAULT_MODE,
+        "GameMode": DEFAULT_MODE,
+        "GameModeID": DEFAULT_MODE,
+        "QueueID": DEFAULT_QUEUE,
+        "ProvisioningFlow": DEFAULT_PROVISIONING_FLOW,
         "ConnectionDetails": None,
         "Players": [],
         "TeamOne": [],
@@ -1449,6 +1686,7 @@ def pregame_match_payload(game_state: dict[str, Any], profile: dict[str, str] | 
     mode_id = game_state.get("mode", DEFAULT_MODE)
     queue_id = game_state.get("queue", DEFAULT_QUEUE)
     provisioning_flow = active_provisioning_flow(game_state)
+    provisioning_flow_value = provisioning_flow_id(provisioning_flow)
     pregame_state = str(game_state.get("pregame_state") or "")
     if not pregame_state:
         pregame_state = "provisioned" if game_state.get("phase") == "core" else "character_select_active"
@@ -1473,6 +1711,7 @@ def pregame_match_payload(game_state: dict[str, Any], profile: dict[str, str] | 
             "PlayerIdentity": player_identity_payload(profile),
             "SeasonalBadgeInfo": None,
             "IsCaptain": profile["subject"] == profiles[0]["subject"],
+            "MatchID": MATCH_ID,
         }
         players.append(player)
         if team == "TeamTwo":
@@ -1481,8 +1720,8 @@ def pregame_match_payload(game_state: dict[str, Any], profile: dict[str, str] | 
             team_spectate.append(player)
         else:
             team_one.append(player)
-    ally_team = {"TeamID": "Blue", "Players": team_one or players}
-    enemy_team = {"TeamID": "Red", "Players": team_two} if team_two else None
+    ally_team = {"TeamID": "TeamOne", "Players": team_one or players}
+    enemy_team = {"TeamID": "TeamTwo", "Players": team_two} if team_two else None
     teams = [ally_team]
     if enemy_team:
         teams.append(enemy_team)
@@ -1513,7 +1752,7 @@ def pregame_match_payload(game_state: dict[str, Any], profile: dict[str, str] | 
         "CastedVotes": None,
         "MapSelectSteps": [],
         "MapSelectStep": 0,
-        "Team1": "Blue",
+        "Team1": "TeamOne",
         "GamePodID": GAME_POD_ID,
         "GamePod": GAME_POD_ID,
         "Mode": mode_id,
@@ -1524,12 +1763,53 @@ def pregame_match_payload(game_state: dict[str, Any], profile: dict[str, str] | 
         "MUCName": TEAM_MUC_NAME,
         "QueueID": queue_id,
         "Queue": queue_id,
+        "ProvisioningFlowID": provisioning_flow,
+        "ProvisioningFlowEnum": provisioning_flow_value,
         "ProvisioningFlow": provisioning_flow,
         "provisioningFlow": provisioning_flow,
         "ProvisioningState": provisioning_state,
         "provisioningState": provisioning_state,
-        "ConnectionDetails": None,
-        "DirectConnectSettings": None,
+        "IsRanked": False,
+        "PhaseTimeRemainingNS": pregame_phase_time_remaining_ns(game_state, pregame_state),
+        "ConnectionDetails": (lambda h, p, m: {
+            **({"GameServerHosts": [h]} if h else {}),
+            "GameServerHost": h,
+            "gameServerHost": h,
+            "GameServerAddress": h,
+            "gameServerAddress": h,
+            **({"GameServerPort": p} if p else {}),
+            **({"gameServerPort": p} if p else {}),
+            "ServerAddress": h,
+            "serverAddress": h,
+            "ServerIP": h,
+            "serverIP": h,
+            "serverIp": h,
+            **({"ServerPort": p} if p else {}),
+            **({"serverPort": p} if p else {}),
+            "GamePodID": GAME_POD_ID,
+            "gamePodID": GAME_POD_ID,
+            "GamePod": GAME_POD_ID,
+            "gamePod": GAME_POD_ID,
+            "GameServerObfuscatedIP": 0,
+            "gameServerObfuscatedIP": 0,
+            "GameClientHash": 0,
+            "gameClientHash": 0,
+            "PlayerKey": "local-player-key",
+            "playerKey": "local-player-key",
+            "Map": m,
+            "map": m,
+        })(
+            "" if is_solo_local_experience(game_state) else "127.0.0.1",
+            0 if is_solo_local_experience(game_state) else 7777,
+            LOCAL_RANGE_TRAVEL_URL if is_api_driven_solo_range(game_state) else map_id,
+        ),
+        "DirectConnectSettings": ({
+            "PlayerName": profile["game_name"],
+            "Team": "TeamOne",
+            "Player": profile["subject"],
+            "ServerIP": "" if is_solo_local_experience(game_state) else "127.0.0.1",
+            "Port": "0" if is_solo_local_experience(game_state) else "7777",
+        } if not is_solo_local_experience(game_state) else None),
         "IsValid": True,
     }
 
@@ -1545,8 +1825,15 @@ def core_game_player_payload(game_state: dict[str, Any], profile: dict[str, str]
 
 def core_game_match_payload(game_state: dict[str, Any], profile: dict[str, str] | None = None) -> dict[str, Any]:
     profile = profile or default_profile()
-    host = game_state.get("game_host", "127.0.0.1")
-    port = int(game_state.get("game_port", 7777))
+    if is_api_driven_solo_range(game_state):
+        host = game_state.get("game_host") or LOCAL_RANGE_GAME_HOST
+        port = int(game_state.get("game_port") or LOCAL_RANGE_GAME_PORT)
+    elif is_solo_local_experience(game_state):
+        host = ""
+        port = 0
+    else:
+        host = game_state.get("game_host", "127.0.0.1")
+        port = int(game_state.get("game_port", 7777))
     map_id = game_state.get("map", DEFAULT_MAP)
     mode_id = game_state.get("mode", DEFAULT_MODE)
     queue_id = game_state.get("queue", DEFAULT_QUEUE)
@@ -1557,13 +1844,33 @@ def core_game_match_payload(game_state: dict[str, Any], profile: dict[str, str] 
     team_spectate = []
     for member_profile in party_profiles(game_state, party_id_for_profile(profile), profile):
         team = custom_team_for_profile(game_state, member_profile)
+        core_team_id = engine_team_id_for_custom_team(team)
+        character_id = character_for_profile(game_state, member_profile, DEFAULT_CHARACTER_ID)
+        character_name = character_dev_name_for_id(character_id)
         player = {
             "Subject": member_profile["subject"],
-            "TeamID": team_id_for_custom_team(team),
-            "CharacterID": character_for_profile(game_state, member_profile, DEFAULT_CHARACTER_ID),
+            "TeamID": core_team_id,
+            "CharacterID": character_id,
+            "CharacterSelectionState": character_state_for_profile(game_state, member_profile) or "locked",
+            "PregamePlayerState": "joined",
+            "DesiredClass": character_id,
+            "DesiredClassID": character_id,
+            "DesiredClassName": character_name,
+            "DesiredCharacterID": character_id,
+            "SelectedCharacterID": character_id,
+            "SelectedCharacter": character_name,
             "PlayerIdentity": player_identity_payload(member_profile),
+            "CorePlayerIdentity": core_player_identity_payload(member_profile),
             "SeasonalBadgeInfo": None,
             "IsCoach": False,
+            "IsCaptain": True,
+            "CompetitiveTier": 0,
+            "MatchID": MATCH_ID,
+            "IsReady": True,
+            "IsLoaded": True,
+            "HasLoadedMap": True,
+            "LoadState": "loaded",
+            "PlayerLoadState": "loaded",
         }
         players.append(player)
         if team == "TeamTwo":
@@ -1572,86 +1879,55 @@ def core_game_match_payload(game_state: dict[str, Any], profile: dict[str, str] 
             team_spectate.append(player)
         else:
             team_one.append(player)
+    minimal_players = [
+        {
+            "Subject": p["Subject"],
+            "TeamID": p["TeamID"],
+            "PlayerIdentity": p["CorePlayerIdentity"],
+        }
+        for p in players
+    ]
+    if port:
+        # Network connect: GameServerHost:GameServerPort → client connects to remote server
+        temp_map = LOCAL_RANGE_TRAVEL_URL if is_api_driven_solo_range(game_state) else map_id
+        connection_details = {
+            "GameServerHost": host,
+            "GameServerPort": port,
+            "GameServerObfuscatedIP": 0,
+            "GameClientHash": 0,
+            "PlayerKey": "local-player-key",
+            "TempMap": temp_map,
+            "TempTeam": engine_team_id_for_custom_team(custom_team_for_profile(game_state, profile)),
+        }
+    else:
+        # Local travel: host is the ?listen URL; omit port so UE4 doesn't append :0
+        travel_url = host if host else (LOCAL_RANGE_TRAVEL_URL if is_api_driven_solo_range(game_state) else map_id)
+        connection_details = {
+            "GameServerHost": "",
+            "GameServerObfuscatedIP": 0,
+            "GameClientHash": 0,
+            "PlayerKey": "local-player-key",
+            "TempMap": travel_url,
+            "TempTeam": engine_team_id_for_custom_team(custom_team_for_profile(game_state, profile)),
+        }
     return {
         "MatchID": MATCH_ID,
-        "ID": MATCH_ID,
         "Version": int(game_state.get("match_version", 1)),
         "State": "IN_PROGRESS",
         "MapID": map_id,
-        "Map": map_id,
-        "MapUrl": map_id,
-        "MapURL": map_id,
-        "MapPath": map_id,
-        "MatchMap": map_id,
-        "ModeID": mode_id,
-        "Mode": mode_id,
-        "GameMode": mode_id,
-        "GameModeID": mode_id,
+        "ConnectionDetails": connection_details,
+        "PostGameDetails": {
+            "Start": "2026-05-25T00:00:00Z",
+            "Players": [],
+        },
         "ProvisioningFlow": provisioning_flow,
-        "provisioningFlow": provisioning_flow,
-        "ProvisioningState": "provisioned",
-        "QueueID": queue_id,
+        "ProvisioningFlowID": provisioning_flow_id(provisioning_flow),
         "GamePodID": GAME_POD_ID,
-        "GamePod": GAME_POD_ID,
         "AllMUCName": ALL_MUC_NAME,
         "TeamMUCName": TEAM_MUC_NAME,
         "TeamVoiceID": TEAM_VOICE_ID,
         "IsReconnectable": True,
-        "ConnectionDetails": {
-            "GameServerHosts": [host],
-            "GameServerHost": host,
-            "gameServerHost": host,
-            "GameServerAddress": host,
-            "gameServerAddress": host,
-            "GameServerPort": port,
-            "gameServerPort": port,
-            "ServerAddress": host,
-            "serverAddress": host,
-            "ServerIP": host,
-            "serverIP": host,
-            "serverIp": host,
-            "ServerPort": port,
-            "serverPort": port,
-            "GamePodID": GAME_POD_ID,
-            "gamePodID": GAME_POD_ID,
-            "GamePod": GAME_POD_ID,
-            "gamePod": GAME_POD_ID,
-            "GameServerObfuscatedIP": 0,
-            "gameServerObfuscatedIP": 0,
-            "GameClientHash": 0,
-            "gameClientHash": 0,
-            "PlayerKey": "local-player-key",
-            "playerKey": "local-player-key",
-        },
-        "DirectConnectSettings": {
-            "Player": profile["subject"],
-            "player": profile["subject"],
-            "Subject": profile["subject"],
-            "subject": profile["subject"],
-            "PlayerName": profile["game_name"],
-            "playerName": profile["game_name"],
-            "ServerIP": host,
-            "serverIP": host,
-            "ServerAddress": host,
-            "serverAddress": host,
-            "Port": port,
-            "port": port,
-            "ServerPort": port,
-            "serverPort": port,
-        },
-        "Players": players,
-        "TeamOne": team_one,
-        "TeamTwo": team_two,
-        "TeamSpectate": team_spectate,
-        "MatchmakingData": {
-            "QueueID": queue_id,
-            "queueID": queue_id,
-            "PreferredGamePods": [GAME_POD_ID],
-            "GamePodID": GAME_POD_ID,
-            "ProvisioningFlow": provisioning_flow,
-            "provisioningFlow": provisioning_flow,
-        },
-        "PostGameDetails": None,
+        "Players": minimal_players,
     }
 
 
@@ -1754,7 +2030,7 @@ def store_entitlements_payload(item_type_id: str, game_state: dict[str, Any] | N
     typed_items = {
         ITEM_TYPE_PLAYER_CARD: [DEFAULT_PLAYER_CARD_ID],
         ITEM_TYPE_PLAYER_TITLE: [DEFAULT_PLAYER_TITLE_ID],
-        ITEM_TYPE_CHARACTER: [DEFAULT_CHARACTER_ID],
+        ITEM_TYPE_CHARACTER: [agent_id for _, _, agent_id in CHARACTER_CONTENT],
         ITEM_TYPE_SPRAY: [DEFAULT_SPRAY_PREROUND_ID, DEFAULT_SPRAY_MIDROUND_ID],
         ITEM_TYPE_CONTRACT: [],
         ITEM_TYPE_SKIN: [row["skin_id"] for row in loadout_rows],
@@ -2199,17 +2475,19 @@ def content_service_payload(game_state: dict[str, Any] | None = None) -> dict[st
     titles = [content_listing(content_asset(DEFAULT_PLAYER_TITLE_ID, "Local Founder", "PlayerTitle", DEFAULT_PLAYER_TITLE_ASSET), ITEM_TYPE_PLAYER_TITLE)]
     maps = [content_listing(content_asset("1f676c76-80e1-4239-95bb-83d0f6d0da78", "Range", "Map", DEFAULT_MAP_ASSET))]
     modes = [content_listing(content_asset("4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38", "Shooting Range", "GameMode", DEFAULT_MODE_ASSET))]
-    characters = [
-        content_listing(
-            content_asset(
-                DEFAULT_CHARACTER_ID,
-                "Phoenix",
-                "Character",
-                blueprint_asset("/Game/Characters/Phoenix/Phoenix_PrimaryAsset"),
-            ),
-            ITEM_TYPE_CHARACTER,
+    characters = []
+    for display_name, asset_name, agent_id in CHARACTER_CONTENT:
+        characters.append(
+            content_listing(
+                content_asset(
+                    agent_id,
+                    display_name,
+                    "Character",
+                    blueprint_asset(f"/Game/Characters/{asset_name}/{asset_name}_PrimaryAsset"),
+                ),
+                ITEM_TYPE_CHARACTER,
+            )
         )
-    ]
     sprays = [
         content_listing(content_asset(DEFAULT_SPRAY_PREROUND_ID, "Chicken", "Spray", DEFAULT_SPRAY_PREROUND_ASSET), ITEM_TYPE_SPRAY),
         content_listing(content_asset(DEFAULT_SPRAY_MIDROUND_ID, "Salt", "Spray", DEFAULT_SPRAY_MIDROUND_ASSET), ITEM_TYPE_SPRAY),
@@ -2818,6 +3096,30 @@ def rms_match_messages(game_state: dict[str, Any] | None = None, profile: dict[s
     profile = profile or default_profile()
     if not game_state:
         return []
+    if game_state.get("phase") == "core":
+        player = core_game_player_payload(game_state, profile)
+        match = core_game_match_payload(game_state, profile)
+        return rms_resource_messages(
+            "ares-core-game",
+            [
+                ("local-core-player-update", f"/ares-core-game/core-game/v1/players/{profile['subject']}", player),
+                ("local-core-match-update", f"/ares-core-game/core-game/v1/matches/{MATCH_ID}", match),
+                ("local-core-player-v1-update", f"/core-game/v1/players/{profile['subject']}", player),
+                ("local-core-match-v1-update", f"/core-game/v1/matches/{MATCH_ID}", match),
+            ],
+        )
+    if is_solo_local_experience(game_state):
+        player = pregame_player_payload(game_state, profile)
+        match = pregame_match_payload(game_state, profile)
+        return rms_resource_messages(
+            "ares-pregame",
+            [
+                ("local-pregame-player-update", f"/ares-pregame/pregame/v1/players/{profile['subject']}", player),
+                ("local-pregame-match-update", f"/ares-pregame/pregame/v1/matches/{MATCH_ID}", match),
+                ("local-pregame-player-v1-update", f"/pregame/v1/players/{profile['subject']}", player),
+                ("local-pregame-match-v1-update", f"/pregame/v1/matches/{MATCH_ID}", match),
+            ],
+        )
     if game_state.get("phase") == "pregame":
         player = pregame_player_payload(game_state, profile)
         match = pregame_match_payload(game_state, profile)
@@ -2826,6 +3128,8 @@ def rms_match_messages(game_state: dict[str, Any] | None = None, profile: dict[s
             [
                 ("local-pregame-player-update", f"/ares-pregame/pregame/v1/players/{profile['subject']}", player),
                 ("local-pregame-match-update", f"/ares-pregame/pregame/v1/matches/{MATCH_ID}", match),
+                ("local-pregame-player-v1-update", f"/pregame/v1/players/{profile['subject']}", player),
+                ("local-pregame-match-v1-update", f"/pregame/v1/matches/{MATCH_ID}", match),
             ],
         )
     if game_state.get("phase") == "core":
@@ -2836,6 +3140,8 @@ def rms_match_messages(game_state: dict[str, Any] | None = None, profile: dict[s
             [
                 ("local-core-player-update", f"/ares-core-game/core-game/v1/players/{profile['subject']}", player),
                 ("local-core-match-update", f"/ares-core-game/core-game/v1/matches/{MATCH_ID}", match),
+                ("local-core-player-v1-update", f"/core-game/v1/players/{profile['subject']}", player),
+                ("local-core-match-v1-update", f"/core-game/v1/matches/{MATCH_ID}", match),
             ],
         )
     return []
@@ -2942,11 +3248,11 @@ def chat_room_infos(game_state: dict[str, Any] | None = None, profile: dict[str,
                     "connectionWasConfirmed": True,
                     "Subject": room_profile["subject"],
                     "subject": room_profile["subject"],
-                    "TeamId": "Blue",
-                    "TeamID": "Blue",
-                    "teamId": "Blue",
-                    "Side": "Blue",
-                    "side": "Blue",
+                    "TeamId": "TeamOne",
+                    "TeamID": "TeamOne",
+                    "teamId": "TeamOne",
+                    "Side": "TeamOne",
+                    "side": "TeamOne",
                     "uiState": {"hidden": False, "changedSinceHidden": False},
                     "unreadCount": 0,
                     "unread_count": 0,
@@ -3309,6 +3615,19 @@ def ensure_cert(cert_path: Path, key_path: Path, ca_cert_path: Path) -> None:
                 [
                     x509.DNSName("localhost"),
                     x509.IPAddress(ipaddress.ip_address("127.0.0.1")),
+                    # Riot domains redirected via hosts file
+                    x509.DNSName("*.riotgames.com"),
+                    x509.DNSName("*.accounts.riotgames.com"),
+                    x509.DNSName("stage.auth.accounts.riotgames.com"),
+                    x509.DNSName("auth.riotgames.com"),
+                    x509.DNSName("*.a.pvp.net"),
+                    x509.DNSName("*.na1.a.pvp.net"),
+                    x509.DNSName("*.dev1.a.pvp.net"),
+                    x509.DNSName("*.pvp.net"),
+                    x509.DNSName("pvp.net"),
+                    x509.DNSName("*.riotgames.io"),
+                    x509.DNSName("riotgames.io"),
+                    x509.DNSName("*.service.riotgames.com"),
                 ]
             ),
             critical=False,
@@ -4009,7 +4328,7 @@ class ProbeHandler(BaseHTTPRequestHandler):
         elif route_path.startswith("/ares-personalization/"):
             route_path = route_path[len("/ares-personalization") :]
 
-        if route_path.startswith("/v1/config/"):
+        if route_path.startswith("/client-config/v2/config/") or route_path.startswith("/v1/config/"):
             self._write(200, self._config_payload())
         elif route_path == "/process-control/v1/process":
             self._write(200, self._process_control_payload())
@@ -4219,10 +4538,14 @@ class ProbeHandler(BaseHTTPRequestHandler):
             profile = self._current_profile()
             party_id = party_id_for_profile(profile)
             configure_solo_experience(game_state, json_body if isinstance(json_body, dict) else {})
-            game_state["phase"] = "pregame"
-            game_state["party_state"] = "SOLO_EXPERIENCE_STARTING"
-            game_state["pregame_state"] = "character_select_finished"
-            ensure_character_selections(game_state, "locked", party_profiles(game_state, party_id, profile))
+            if API_DRIVEN_SOLO_RANGE and is_solo_local_experience(game_state):
+                start_solo_range_pregame(game_state, profile)
+            else:
+                game_state["phase"] = "pregame"
+                game_state["party_state"] = "SOLO_EXPERIENCE_STARTING"
+                game_state["pregame_state"] = ""
+                game_state["solo_api_core"] = False
+                ensure_character_selections(game_state, "selected", party_profiles(game_state, party_id, profile))
             self._bump_party()
             self._bump_match()
             self._broadcast_backend_state_update()
@@ -4273,6 +4596,7 @@ class ProbeHandler(BaseHTTPRequestHandler):
             game_state["phase"] = "custom"
             game_state["party_state"] = "CUSTOM_GAME_SETUP"
             game_state["pregame_state"] = ""
+            game_state["solo_api_core"] = False
             game_state["provisioning_flow"] = DEFAULT_PROVISIONING_FLOW
             game_state["queue"] = DEFAULT_QUEUE
             self._bump_party()
@@ -4284,6 +4608,7 @@ class ProbeHandler(BaseHTTPRequestHandler):
             game_state["phase"] = "menus"
             game_state["party_state"] = "DEFAULT"
             game_state["pregame_state"] = ""
+            game_state["solo_api_core"] = False
             game_state["provisioning_flow"] = DEFAULT_PROVISIONING_FLOW
             game_state["queue"] = DEFAULT_QUEUE
             self._bump_party()
@@ -4296,6 +4621,7 @@ class ProbeHandler(BaseHTTPRequestHandler):
             game_state["phase"] = "custom"
             game_state["party_state"] = "CUSTOM_GAME_SETUP"
             game_state["pregame_state"] = ""
+            game_state["solo_api_core"] = False
             game_state["provisioning_flow"] = DEFAULT_PROVISIONING_FLOW
             self._bump_party()
             self._broadcast_backend_state_update()
@@ -4305,7 +4631,9 @@ class ProbeHandler(BaseHTTPRequestHandler):
             party_id = party_id_from_route(route_path) or party_id_for_profile(profile)
             game_state["phase"] = "pregame"
             game_state["party_state"] = "CUSTOM_GAME_STARTING"
+            game_state["pregame_state"] = "character_select_active"
             game_state["provisioning_flow"] = DEFAULT_PROVISIONING_FLOW
+            game_state["solo_api_core"] = False
             ensure_character_selections(game_state, "selected", party_profiles(game_state, party_id, profile))
             self._bump_party()
             self._bump_match()
@@ -4315,10 +4643,14 @@ class ProbeHandler(BaseHTTPRequestHandler):
             profile = self._current_profile()
             party_id = party_id_from_route(route_path) or party_id_for_profile(profile)
             configure_solo_experience(game_state, json_body if isinstance(json_body, dict) else {})
-            game_state["phase"] = "pregame"
-            game_state["party_state"] = "SOLO_EXPERIENCE_STARTING"
-            game_state["pregame_state"] = "character_select_finished"
-            ensure_character_selections(game_state, "locked", party_profiles(game_state, party_id, profile))
+            if API_DRIVEN_SOLO_RANGE and is_solo_local_experience(game_state):
+                start_solo_range_pregame(game_state, profile)
+            else:
+                game_state["phase"] = "pregame"
+                game_state["party_state"] = "SOLO_EXPERIENCE_STARTING"
+                game_state["pregame_state"] = "provisioned"
+                game_state["solo_api_core"] = False
+                ensure_character_selections(game_state, "locked", party_profiles(game_state, party_id, profile))
             self._bump_party()
             self._bump_match()
             self._broadcast_backend_state_update()
@@ -4328,7 +4660,11 @@ class ProbeHandler(BaseHTTPRequestHandler):
             party_id = party_id_from_route(route_path) or party_id_for_profile(profile)
             game_state["queue"] = json_body.get("queueID") or json_body.get("QueueID") or DEFAULT_QUEUE
             game_state["party_state"] = "MATCHMAKING"
+            game_state["phase"] = "pregame"
+            game_state["pregame_state"] = ""
+            ensure_character_selections(game_state, "selected", party_profiles(game_state, party_id, profile))
             self._bump_party()
+            self._bump_match()
             self._broadcast_backend_state_update()
             self._write(200, party_payload(game_state, party_id, profile), localize=False)
         elif re.match(r"^/parties/v1/parties/[^/]+/matchmaking/join$", route_path):
@@ -4377,7 +4713,9 @@ class ProbeHandler(BaseHTTPRequestHandler):
             else:
                 self._write(200, inactive_match_player_payload(self._current_profile()), localize=False)
         elif route_path == "/pregame/v1/matches/" or route_path == "/pregame/v1/matches":
-            if game_state.get("phase") in {"pregame", "core"}:
+            if game_state.get("phase") == "core":
+                self._write(200, pregame_match_payload(game_state, self._current_profile()), localize=False)
+            elif game_state.get("phase") == "pregame":
                 self._write(200, pregame_match_payload(game_state, self._current_profile()), localize=False)
             else:
                 self._write(200, inactive_match_payload())
@@ -4406,11 +4744,28 @@ class ProbeHandler(BaseHTTPRequestHandler):
             game_state["phase"] = "pregame"
             set_character_for_profile(game_state, profile, character_id, "locked")
             current_party_profiles = party_profiles(game_state, party_id_for_profile(profile), profile)
-            if all(character_state_for_profile(game_state, member_profile) == "locked" for member_profile in current_party_profiles):
+            all_locked = all(character_state_for_profile(game_state, member_profile) == "locked" for member_profile in current_party_profiles)
+            should_auto_start = False
+            if all_locked:
                 game_state["pregame_state"] = "character_select_finished"
+                should_auto_start = should_auto_start_after_lock(game_state)
+            self._bump_party()
             self._bump_match()
+            response_payload = pregame_match_payload(game_state, profile)
             self._broadcast_backend_state_update()
-            self._write(200, pregame_match_payload(game_state, profile), localize=False)
+            self._write(200, response_payload, localize=False)
+            if should_auto_start:
+                if API_DRIVEN_SOLO_RANGE and is_solo_local_experience(game_state):
+                    promote_solo_range_to_api_core(game_state, profile)
+                elif active_party_state(game_state) == "CUSTOM_GAME_STARTING":
+                    promote_custom_game_to_core(game_state, profile)
+                else:
+                    game_state["phase"] = "pregame"
+                    game_state["party_state"] = "SOLO_EXPERIENCE_STARTING"
+                    game_state["pregame_state"] = "provisioned"
+                self._bump_party()
+                self._bump_match()
+                self._broadcast_backend_state_update()
         elif re.match(r"^/pregame/v1/matches/[^/]+/(quit|cheatquit)$", route_path):
             game_state["phase"] = "menus"
             game_state["party_state"] = "DEFAULT"
@@ -4421,30 +4776,58 @@ class ProbeHandler(BaseHTTPRequestHandler):
             self._broadcast_backend_state_update()
             self._write(200, {"ok": True})
         elif re.match(r"^/pregame/v1/matches/[^/]+/(start|cheatstart)$", route_path):
-            game_state["phase"] = "core"
-            game_state["party_state"] = "MATCHMADE_GAME_STARTING"
-            game_state["pregame_state"] = "provisioned"
             profile = self._current_profile()
+            if API_DRIVEN_SOLO_RANGE and is_solo_local_experience(game_state):
+                promote_solo_range_to_api_core(game_state, profile)
+            elif is_solo_local_experience(game_state):
+                game_state["phase"] = "pregame"
+                game_state["party_state"] = "SOLO_EXPERIENCE_STARTING"
+            else:
+                game_state["phase"] = "core"
+                game_state["party_state"] = "MATCHMADE_GAME_STARTING"
+            game_state["pregame_state"] = "provisioned"
             ensure_character_selections(game_state, "locked", party_profiles(game_state, party_id_for_profile(profile), profile))
             self._bump_party()
             self._bump_match()
             self._broadcast_backend_state_update()
-            self._write(200, core_game_match_payload(game_state, profile), localize=False)
+            if game_state.get("phase") == "core":
+                self._write(200, core_game_match_payload(game_state, profile), localize=False)
+            elif is_solo_local_experience(game_state):
+                self._write(200, pregame_match_payload(game_state, profile), localize=False)
+            else:
+                self._write(200, core_game_match_payload(game_state, profile), localize=False)
         elif route_path.startswith("/pregame/v1/matches/"):
-            if game_state.get("phase") in {"pregame", "core"}:
+            if is_api_driven_solo_range(game_state) and game_state.get("phase") == "core":
+                self._write(200, pregame_match_payload(game_state, self._current_profile()), localize=False)
+            elif game_state.get("phase") in {"pregame", "core"}:
                 self._write(200, pregame_match_payload(game_state, self._current_profile()), localize=False)
             else:
                 self._write(200, inactive_match_payload())
         elif re.match(r"^/core-game/v1/players/[^/]+/fixsession$", route_path):
-            game_state["phase"] = "core"
-            game_state["pregame_state"] = "provisioned"
+            if is_api_driven_solo_range(game_state):
+                promote_solo_range_to_api_core(game_state, self._current_profile())
+            elif is_solo_local_experience(game_state):
+                game_state["phase"] = "pregame"
+                game_state["pregame_state"] = "provisioned"
+            else:
+                game_state["phase"] = "core"
+                game_state["pregame_state"] = "provisioned"
             self._bump_match()
             self._broadcast_backend_state_update()
-            self._write(200, core_game_player_payload(game_state, self._current_profile()), localize=False)
+            if is_api_driven_solo_range(game_state) and game_state.get("phase") == "core":
+                self._write(200, core_game_player_payload(game_state, self._current_profile()), localize=False)
+            elif is_solo_local_experience(game_state) or is_solo_local_travel_pending(game_state):
+                self._write(200, inactive_match_player_payload(self._current_profile()), localize=False)
+            else:
+                self._write(200, core_game_player_payload(game_state, self._current_profile()), localize=False)
         elif re.match(r"^/core-game/v1/players/[^/]+/disassociate/", route_path):
             self._write(200, {"ok": True})
         elif route_path.startswith("/core-game/v1/players/"):
-            if game_state.get("phase") == "core":
+            if is_api_driven_solo_range(game_state) and game_state.get("phase") == "core":
+                self._write(200, core_game_player_payload(game_state, self._current_profile()), localize=False)
+            elif is_solo_local_experience(game_state) or is_solo_local_travel_pending(game_state):
+                self._write(200, inactive_match_player_payload(self._current_profile()), localize=False)
+            elif game_state.get("phase") == "core":
                 self._write(200, core_game_player_payload(game_state, self._current_profile()), localize=False)
             else:
                 self._write(200, inactive_match_player_payload(self._current_profile()), localize=False)
@@ -4461,13 +4844,20 @@ class ProbeHandler(BaseHTTPRequestHandler):
         elif re.match(r"^/core-game/v1/matches/[^/]+/rematch/", route_path):
             self._write(200, {"ok": True})
         elif route_path.startswith("/core-game/v1/matches/"):
-            if game_state.get("phase") == "core":
+            if is_api_driven_solo_range(game_state) and game_state.get("phase") == "core":
+                self._write(200, core_game_match_payload(game_state, self._current_profile()), localize=False)
+            elif is_solo_local_experience(game_state) or is_solo_local_travel_pending(game_state):
+                self._write(200, inactive_match_payload())
+            elif game_state.get("phase") == "core":
                 self._write(200, core_game_match_payload(game_state, self._current_profile()), localize=False)
             elif game_state.get("phase") == "pregame" and game_state.get("pregame_state") == "provisioned":
-                game_state["phase"] = "core"
-                self._bump_match()
-                self._broadcast_backend_state_update()
-                self._write(200, core_game_match_payload(game_state, self._current_profile()), localize=False)
+                if is_solo_local_experience(game_state):
+                    self._write(200, inactive_match_payload())
+                else:
+                    game_state["phase"] = "core"
+                    self._bump_match()
+                    self._broadcast_backend_state_update()
+                    self._write(200, core_game_match_payload(game_state, self._current_profile()), localize=False)
             else:
                 self._write(200, inactive_match_payload())
         elif re.match(r"^/personalization/v2/players/[^/]+/playerloadout$", route_path):
@@ -4575,6 +4965,12 @@ def main() -> None:
     parser.add_argument("--game-host", default="127.0.0.1")
     parser.add_argument("--game-port", type=int, default=7777)
     parser.add_argument("--phase", choices=["menus", "custom", "pregame", "core", "practice"], default="menus")
+    parser.add_argument("--multiplayer-host", action="store_true", help="Start in multiplayer listen-server host mode (core phase, ?listen travel).")
+    parser.add_argument("--connect-server", default="", metavar="HOST:PORT", help="Start as multiplayer joining client connecting to HOST:PORT.")
+    parser.add_argument("--num-players", type=int, default=2, help="Expected player count for multiplayer host mode.")
+    parser.add_argument("--map", default=DEFAULT_MAP, help="Map ID for multiplayer modes.")
+    parser.add_argument("--mode", default=DEFAULT_MODE, help="Game mode ID for multiplayer modes.")
+    parser.add_argument("--profile", default="developer", help="Profile key for multiplayer modes.")
     parser.add_argument("--database-url", default=os.getenv("PROJECTA_DATABASE_URL") or os.getenv("DATABASE_URL") or DEFAULT_DATABASE_URL)
     parser.add_argument("--allow-memory-db", action="store_true", help="Use in-memory account storage for local smoke tests.")
     parser.add_argument("--no-db-migrate", action="store_true", help="Do not apply Server/sql/schema.sql at startup.")
@@ -4597,7 +4993,22 @@ def main() -> None:
     server.chat_lock = threading.Lock()
     server.chat_messages = []
     server._ws_id = 1000
-    server.game_state = initial_game_state(args.game_host, args.game_port, args.phase)
+
+    if args.multiplayer_host:
+        server.game_state = initial_multiplayer_host_state(args.map, args.mode, args.num_players, args.profile)
+        print(f"[multiplayer] host mode: {args.map}?listen, {args.num_players} players", flush=True)
+    elif args.connect_server:
+        raw = args.connect_server
+        if ":" in raw:
+            cs_host, cs_port_str = raw.rsplit(":", 1)
+            cs_port = int(cs_port_str)
+        else:
+            cs_host, cs_port = raw, LOCAL_RANGE_GAME_PORT
+        server.game_state = initial_multiplayer_client_state(cs_host, cs_port, args.map, args.mode, args.profile)
+        print(f"[multiplayer] client mode: connecting to {cs_host}:{cs_port}", flush=True)
+    else:
+        server.game_state = initial_game_state(args.game_host, args.game_port, args.phase)
+
     server.seen_profiles = set(server.game_state.get("active_profile_keys") or [])
 
     def next_ws_id() -> int:
